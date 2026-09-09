@@ -15,9 +15,27 @@ amount of capital as an experiment.
 |-----|------|-------|
 | 1 | `broker_alpaca.py` + `config.py` + `risk.py` (caps wired in) | done |
 | 2 | SQLite schema (`db.py`) + `strategy.py` + `agent.py` loop in **shadow mode** | **done, offline selftest passes; awaiting your live paper run** |
-| 3 | Dashboard reading the same DB | not started |
+| 3 | Dashboard (`dashboard/`) reading the same DB | **done** |
 | 4 | Flip to live execution (only after you approve) | not started |
 | 5 | systemd packaging + VPS deploy | not started |
+
+## Dashboard
+
+Separate read-only Flask service. HTTP basic auth (required -- refuses to start
+without `DASHBOARD_PASSWORD`). Dark "self-healing matrix" theme, polls
+`/api/state` every `DASHBOARD_POLL_SECONDS`. Shows: account summary (portfolio
+value, cash, day P&L, all-time P&L), portfolio-value chart, positions
+(stocks + crypto), live trades feed with reasoning, decision log (trade **and**
+no-trade), agent status (mode, kill switch, last/next loop), events.
+
+```bash
+.venv/bin/python -m dashboard                              # dev server :8080
+DB_PATH=./data/demo.db .venv/bin/python -m dashboard       # view seeded demo data
+
+.venv/bin/python -m scripts.seed_demo    # writes fake data to data/demo.db only
+```
+
+Production (step 5): `gunicorn -b 0.0.0.0:8080 'dashboard.app:app'`.
 
 ## Step 2 check — run these
 

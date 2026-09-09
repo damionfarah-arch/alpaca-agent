@@ -163,6 +163,15 @@ def init_db(path: str | Path) -> sqlite3.Connection:
     return conn
 
 
+def connect_readonly(path: str | Path) -> sqlite3.Connection:
+    """Best-effort read-only connection for the dashboard. Falls back to a normal
+    (still never-written) connection if the ro URI can't open the WAL sidecar."""
+    try:
+        return connect(path, read_only=True)
+    except sqlite3.OperationalError:
+        return connect(path)
+
+
 @contextmanager
 def tx(conn: sqlite3.Connection) -> Iterator[sqlite3.Connection]:
     try:
@@ -545,3 +554,29 @@ def equity_curve(conn: sqlite3.Connection, limit: int = 2000) -> list[dict]:
 def latest_loop(conn: sqlite3.Connection) -> dict | None:
     row = conn.execute("SELECT * FROM loops ORDER BY id DESC LIMIT 1").fetchone()
     return dict(row) if row else None
+
+
+def first_account(conn: sqlite3.Connection, source: str | None = None) -> dict | None:
+    if source:
+        row = conn.execute(
+            "SELECT * FROM account_snapshots WHERE source=? ORDER BY id ASC LIMIT 1",
+            (source,),
+        ).fetchone()
+    else:
+        row = conn.execute(
+            "SELECT * FROM account_snapshots ORDER BY id ASC LIMIT 1"
+        ).fetchone()
+    return dict(row) if row else None
+
+
+def counts(conn: sqlite3.Connection) -> dict:
+    def _c(sql: str) -> int:
+        return int(conn.execute(sql).fetchone()[0])
+
+    return {
+        "loops": _c("SELECT COUNT(*) FROM loops"),
+        "decisions": _c("SELECT COUNT(*) FROM decisions"),
+        "trades": _c("SELECT COUNT(*) FROM trades"),
+        "shadow_trades": _c("SELECT COUNT(*) FROM trades WHERE shadow=1"),
+        "live_trades": _c("SELECT COUNT(*) FROM trades WHERE shadow=0"),
+    }

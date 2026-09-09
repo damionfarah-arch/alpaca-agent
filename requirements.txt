@@ -4,6 +4,7 @@ python-dotenv>=1.0.0
 
 # Dashboard
 Flask>=3.0.0,<4.0.0
+gunicorn>=21.2.0        # production WSGI server (systemd uses this in step 5)
 
 # alpaca-py already pulls in pandas + numpy transitively; we rely on that
 # but do not import pandas in strategy code (kept dependency-light + explainable).
