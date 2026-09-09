@@ -1,0 +1,9 @@
+# Core
+alpaca-py>=0.33.0,<1.0.0
+python-dotenv>=1.0.0
+
+# Dashboard
+Flask>=3.0.0,<4.0.0
+
+# alpaca-py already pulls in pandas + numpy transitively; we rely on that
+# but do not import pandas in strategy code (kept dependency-light + explainable).

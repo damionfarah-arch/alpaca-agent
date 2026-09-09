@@ -1,0 +1,33 @@
+# secrets / local config
+.env
+*.env
+!.env.example
+
+# database + logs
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+data/
+logs/
+*.log
+
+# kill switch
+KILL
+kill_switch
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# editor / os
+.DS_Store
+.idea/
+.vscode/
