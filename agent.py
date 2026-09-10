@@ -29,6 +29,7 @@ from datetime import datetime, timedelta, timezone
 import db
 from broker_alpaca import AlpacaBroker, BrokerError
 from config import CONFIG
+from engine import plan_trade
 from models import AssetClass, Position, Side
 from risk import OrderIntent, RiskManager, daily_loss_halt, kill_switch_active
 from shadow import ShadowPortfolio
@@ -297,31 +298,18 @@ class AgentLoop:
         bars = self.broker.get_bars(symbol)
         sig = self.strategy.evaluate(bars)
 
-        # ---- position logic: translate raw signal -> intent ----
-        intent_action = HOLD
-        position_reason = None
-        order_intent: OrderIntent | None = None
-
-        if sig.action == BUY:
-            if held_qty > 0:
-                position_reason = f"already long {held_qty:g} {symbol}; not adding."
-            else:
-                intent_action = BUY
-                order_intent = OrderIntent(
-                    symbol=symbol, side=Side.BUY,
-                    notional_usd=cfg.risk.max_position_notional_usd,
-                )
-        elif sig.action == SELL:
-            if held_qty > 0:
-                intent_action = SELL
-                ref_price = sig.price or (position.current_price if position else 0.0)
-                order_intent = OrderIntent(
-                    symbol=symbol, side=Side.SELL,
-                    notional_usd=abs(held_qty) * ref_price,
-                    qty=abs(held_qty), reduce_only=True,
-                )
-            else:
-                position_reason = "no open position to sell."
+        # ---- position logic: translate raw signal -> intent (shared with backtest) ----
+        ref_price = sig.price or (position.current_price if position else 0.0)
+        planned = plan_trade(
+            sig.action,
+            held_qty=held_qty,
+            symbol=symbol,
+            notional_cap=cfg.risk.max_position_notional_usd,
+            ref_price=ref_price,
+        )
+        intent_action = planned.intent_action
+        position_reason = planned.position_reason
+        order_intent = planned.order_intent
 
         # ---- risk evaluation ----
         risk_allowed: bool | None = None

@@ -95,6 +95,45 @@
       pct(acc.all_time_pl_pct),
       acc.realized_pl != null ? `realised ${signedUsd(acc.realized_pl)}` : ""
     ].filter(Boolean).join(" · ");
+
+    // whole-page P&L mood (drives the top strip + portfolio card + ticker tag)
+    const p = acc.all_time_pl;
+    document.body.dataset.pnl = (p == null || Math.abs(p) < 0.005) ? "zero" : (p < 0 ? "neg" : "pos");
+  }
+
+  // ---------- agent-mind ticker ----------
+  function renderTicker(decisions, trades) {
+    const track = $("ticker");
+    if (!decisions || !decisions.length) return;
+    const recentTrade = new Map();
+    (trades || []).slice(0, 12).forEach((t) => {
+      if (!recentTrade.has(t.symbol)) recentTrade.set(t.symbol, t);
+    });
+
+    // one segment per most-recent decision per symbol, newest first
+    const seen = new Set();
+    const segs = [];
+    for (const d of decisions) {
+      if (seen.has(d.symbol)) continue;
+      seen.add(d.symbol);
+      const intent = (d.intent || "hold").toLowerCase();
+      const cls = intent === "buy" ? "buy" : intent === "sell" ? "sell" : "hold";
+      const verb = d.executed ? "EXECUTED" : d.blocked ? "BLOCKED" : intent === "hold" ? "holding" : "would " + intent;
+      const spread = (d.fast_ma != null && d.slow_ma != null && d.slow_ma !== 0)
+        ? ` Δ${((d.fast_ma - d.slow_ma) / d.slow_ma * 100).toFixed(2)}%` : "";
+      // trim the reason to its first sentence for the crawl
+      const why = (d.reason || "").split(". ")[0].replace(/\.$/, "");
+      segs.push(
+        `<span class="ticker-seg"><b>${esc(d.symbol)}</b> <span class="${cls}">${esc(verb)}</span>${esc(spread)} — ${esc(why)}</span>`
+      );
+    }
+    if (!segs.length) return;
+    const line = segs.join('<span class="ticker-sep">◇</span>');
+    // duplicate so the -50% keyframe wraps seamlessly
+    track.innerHTML = line + '<span class="ticker-sep">◇</span>' + line + '<span class="ticker-sep">◇</span>';
+    // pace it by length so it's readable regardless of how much text
+    const secs = Math.max(45, Math.round(track.scrollWidth / 60));
+    track.style.setProperty("--ticker-dur", secs + "s");
   }
 
   // ---------- SVG equity chart ----------
@@ -145,6 +184,66 @@
     $("curveMeta").textContent =
       `${curve.length} pts · ${hhmmss(curve[0].ts)} → ${hhmmss(curve[lastI].ts)}` +
       (baseline != null ? ` · baseline ${usd(baseline)}` : "");
+  }
+
+  // ---------- per-symbol market mini-charts ----------
+  function miniChart(m) {
+    const s = m.series || [];
+    const W = 420, H = 90, pad = 4;
+    const pts = s.map((d) => d.p).filter((v) => v != null);
+    if (pts.length < 2) return `<div class="mkt-nochart">collecting data…</div>`;
+    const fa = s.map((d) => d.f), sa = s.map((d) => d.s);
+    const all = pts.concat(fa.filter(v => v != null), sa.filter(v => v != null));
+    let lo = Math.min(...all), hi = Math.max(...all);
+    if (lo === hi) { lo -= 1; hi += 1; }
+    const rng = (hi - lo) * 1.08;
+    const mid = (hi + lo) / 2;
+    lo = mid - rng / 2; hi = mid + rng / 2;
+    const x = (i) => pad + (i / (s.length - 1)) * (W - 2 * pad);
+    const y = (v) => pad + (1 - (v - lo) / (hi - lo)) * (H - 2 * pad);
+    const path = (arr) => arr.map((v, i) => v == null ? null : `${x(i).toFixed(1)},${y(v).toFixed(1)}`)
+      .filter(Boolean).join(" ");
+    const priceP = path(pts.map((_, i) => s[i].p));
+    const fastP = path(fa);
+    const slowP = path(sa);
+    const li = s.length - 1;
+    return `
+      <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" class="mkt-svg">
+        <polyline class="mkt-slow" points="${slowP}"/>
+        <polyline class="mkt-fast" points="${fastP}"/>
+        <polyline class="mkt-price" points="${priceP}"/>
+        <circle class="mkt-dot" cx="${x(li).toFixed(1)}" cy="${y(s[li].p).toFixed(1)}" r="2.5"/>
+      </svg>`;
+  }
+
+  function renderMarkets(markets) {
+    const box = $("markets");
+    if (!markets || !markets.length) {
+      box.innerHTML = `<div class="empty">waiting for price history…</div>`;
+      return;
+    }
+    box.innerHTML = `<div class="mkt-grid">` + markets.map((m) => {
+      const sig = (m.signal || "hold").toLowerCase();
+      const sigCls = sig === "buy" ? "buy" : sig === "sell" ? "sell" : "hold";
+      const spread = (m.fast_ma != null && m.slow_ma != null && m.slow_ma !== 0)
+        ? ((m.fast_ma - m.slow_ma) / m.slow_ma * 100) : null;
+      return `
+        <div class="mkt ${m.held ? "held" : ""}">
+          <div class="mkt-head">
+            <span class="sym">${esc(m.symbol)}</span>
+            <span class="tag ${esc(m.asset_class)}">${m.asset_class === "crypto" ? "crypto" : "equity"}</span>
+            ${m.held ? `<span class="badge b-exec">HELD</span>` : ""}
+            <span class="mkt-price-now">${usd(m.last_price)}</span>
+            <span class="${plClass(m.change_pct)}">${pct(m.change_pct)}</span>
+          </div>
+          ${miniChart(m)}
+          <div class="mkt-foot">
+            <span class="badge b-${sigCls}">${esc(sig)}</span>
+            <span class="mkt-legend"><i class="lg-price"></i>price <i class="lg-fast"></i>fast MA <i class="lg-slow"></i>slow MA</span>
+            ${spread != null ? `<span class="mkt-spread">spread ${spread >= 0 ? "+" : ""}${spread.toFixed(2)}%</span>` : ""}
+          </div>
+        </div>`;
+    }).join("") + `</div>`;
   }
 
   // ---------- positions ----------
@@ -306,11 +405,13 @@
       renderPills(st);
       renderStats(acc, cfg, st);
       renderChart(s.equity_curve, acc.baseline_equity);
+      renderMarkets(s.markets);
       renderPositions(s.positions);
       renderStatus(st, cfg);
       renderEvents(s.events);
       renderTrades(s.trades);
       renderDecisions(s.decisions);
+      renderTicker(s.decisions, s.trades);
       renderFooter(cfg);
 
       $("tradeMeta").textContent = `${st.counts.trades} total`;

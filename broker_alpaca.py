@@ -293,6 +293,47 @@ class AlpacaBroker:
         bars.sort(key=lambda x: x.timestamp)
         return bars[-limit:]
 
+    def get_bars_range(
+        self,
+        symbol: str,
+        timeframe: str,
+        start: datetime,
+        end: datetime | None = None,
+    ) -> list[Bar]:
+        """All bars for `symbol` between `start` and `end` (used by the backtester).
+        alpaca-py paginates internally."""
+        tf = parse_timeframe(timeframe)
+        crypto = self.is_crypto(symbol)
+        try:
+            if crypto:
+                sym = self.normalize_symbol(symbol)
+                res = self.crypto_data.get_crypto_bars(
+                    CryptoBarsRequest(
+                        symbol_or_symbols=[sym], timeframe=tf, start=start, end=end
+                    )
+                )
+            else:
+                sym = symbol
+                res = self.stock_data.get_stock_bars(
+                    StockBarsRequest(
+                        symbol_or_symbols=[sym], timeframe=tf, start=start, end=end
+                    )
+                )
+        except APIError as exc:
+            raise BrokerError(f"get_bars_range({symbol}) failed: {exc}") from exc
+
+        data = res.data.get(sym) or res.data.get(self.normalize_symbol(symbol)) or []
+        bars = [
+            Bar(
+                timestamp=b.timestamp,
+                open=_f(b.open), high=_f(b.high), low=_f(b.low),
+                close=_f(b.close), volume=_f(b.volume),
+            )
+            for b in data
+        ]
+        bars.sort(key=lambda x: x.timestamp)
+        return bars
+
     # ------------------------------------------------------------------ #
     # clock / market status
     # ------------------------------------------------------------------ #

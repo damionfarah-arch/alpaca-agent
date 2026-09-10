@@ -556,6 +556,22 @@ def latest_loop(conn: sqlite3.Connection) -> dict | None:
     return dict(row) if row else None
 
 
+def price_series(conn: sqlite3.Connection, symbol: str, limit: int = 240) -> list[dict]:
+    """Recent (ts, price, fast_ma, slow_ma) for a symbol, oldest-first --
+    reconstructed from the decision log the agent writes every loop."""
+    rows = conn.execute(
+        "SELECT ts, price, fast_ma, slow_ma, signal FROM decisions "
+        "WHERE symbol = ? AND price IS NOT NULL ORDER BY id DESC LIMIT ?",
+        (symbol, limit),
+    ).fetchall()
+    return [dict(r) for r in reversed(rows)]
+
+
+def traded_symbols(conn: sqlite3.Connection) -> list[str]:
+    rows = conn.execute("SELECT DISTINCT symbol FROM trades ORDER BY symbol").fetchall()
+    return [r["symbol"] for r in rows]
+
+
 def first_account(conn: sqlite3.Connection, source: str | None = None) -> dict | None:
     if source:
         row = conn.execute(

@@ -73,6 +73,37 @@ def _build_state() -> dict:
         curve = db.equity_curve(conn, 1500)
         last_loop = db.latest_loop(conn)
         cnt = db.counts(conn)
+
+        held = {p["symbol"] for p in positions}
+        # chart every configured symbol; held ones sort first
+        syms = sorted(
+            CONFIG.all_symbols,
+            key=lambda s: (s not in held, CONFIG.all_symbols.index(s)),
+        )
+        markets = []
+        for s in syms:
+            ser = db.price_series(conn, s, 240)
+            if not ser:
+                continue
+            last = ser[-1]
+            markets.append({
+                "symbol": s,
+                "held": s in held,
+                "asset_class": "crypto" if "/" in s else "us_equity",
+                "last_price": last["price"],
+                "fast_ma": last["fast_ma"],
+                "slow_ma": last["slow_ma"],
+                "signal": last["signal"],
+                "change_pct": (
+                    (ser[-1]["price"] / ser[0]["price"] - 1) * 100
+                    if ser[0]["price"] else 0.0
+                ),
+                "series": [
+                    {"ts": r["ts"], "p": r["price"],
+                     "f": r["fast_ma"], "s": r["slow_ma"]}
+                    for r in ser
+                ],
+            })
     finally:
         conn.close()
 
@@ -124,6 +155,7 @@ def _build_state() -> dict:
             "as_of": account["ts"] if account else None,
         },
         "positions": positions,
+        "markets": markets,
         "trades": trades,
         "decisions": decisions,
         "events": events,

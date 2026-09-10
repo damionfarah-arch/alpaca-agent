@@ -22,10 +22,17 @@
     </div>
   </header>
 
+  <div class="ticker" id="tickerWrap" aria-hidden="true">
+    <div class="ticker-tag">AGENT&nbsp;MIND</div>
+    <div class="ticker-viewport">
+      <div class="ticker-track" id="ticker"><span>booting&hellip;</span></div>
+    </div>
+  </div>
+
   <div id="banner"></div>
 
   <section class="stats" id="stats">
-    <div class="stat"><div class="label">Portfolio Value</div><div class="value" id="s-equity">&mdash;</div><div class="sub" id="s-equity-sub"></div></div>
+    <div class="stat mood"><div class="label">Portfolio Value</div><div class="value" id="s-equity">&mdash;</div><div class="sub" id="s-equity-sub"></div></div>
     <div class="stat"><div class="label">Cash</div><div class="value" id="s-cash">&mdash;</div><div class="sub" id="s-cash-sub"></div></div>
     <div class="stat"><div class="label">P&amp;L &mdash; Today</div><div class="value" id="s-day">&mdash;</div><div class="sub" id="s-day-sub"></div></div>
     <div class="stat"><div class="label">P&amp;L &mdash; All Time</div><div class="value" id="s-all">&mdash;</div><div class="sub" id="s-all-sub"></div></div>
@@ -34,6 +41,11 @@
   <section class="panel">
     <div class="panel-h">Portfolio Value <span class="muted" id="curveMeta"></span></div>
     <div id="chart"><div class="empty">no equity history yet</div></div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-h">Markets <span class="hint">price + fast/slow MA &mdash; held symbols first</span></div>
+    <div id="markets"><div class="empty">waiting for price history&hellip;</div></div>
   </section>
 
   <div class="grid2">
