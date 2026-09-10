@@ -21,7 +21,13 @@ die()  { printf '\033[1;31mXX  %s\033[0m\n' "$*" >&2; exit 1; }
 as_app() { sudo -u "$APP_USER" -H "$@"; }
 
 [ "$(id -u)" -eq 0 ] || die "run as root (use: sudo bash setup.sh <repo-url>)"
-[ -n "$REPO_URL" ] || die "usage: bash setup.sh git@github.com:YOURNAME/alpaca-agent.git"
+[ -n "$REPO_URL" ] || die "usage: bash setup.sh <repo-url>   (or '-' if code is already in ${APP_DIR})"
+
+# "-" / "local" => code is already staged in APP_DIR (e.g. via rsync); skip git.
+NO_GIT=0
+case "$REPO_URL" in
+  -|local|LOCAL) NO_GIT=1 ;;
+esac
 
 # --- 1. system packages ----------------------------------------------------
 say "installing system packages"
@@ -38,6 +44,12 @@ fi
 mkdir -p "${APP_HOME}/.ssh" "${APP_DIR}/data"
 chmod 700 "${APP_HOME}/.ssh"
 chown -R "${APP_USER}:${APP_USER}" "$APP_HOME"
+
+if [ "$NO_GIT" -eq 1 ]; then
+  say "using code already staged in ${APP_DIR} (no git)"
+  [ -f "${APP_DIR}/requirements.txt" ] || die "no code found in ${APP_DIR} -- stage it first (rsync)"
+  chown -R "${APP_USER}:${APP_USER}" "$APP_DIR"
+else
 
 # --- 3. deploy key (read-only GitHub access) ---------------------------
 KEY="${APP_HOME}/.ssh/id_ed25519"
@@ -74,6 +86,9 @@ else
   say "cloning repo"
   as_app git clone --quiet "$REPO_URL" "$APP_DIR"
 fi
+
+fi  # end NO_GIT branch
+
 mkdir -p "${APP_DIR}/data"
 chown -R "${APP_USER}:${APP_USER}" "$APP_DIR"
 
