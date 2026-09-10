@@ -10,7 +10,7 @@ Type=simple
 User=alpaca
 Group=alpaca
 WorkingDirectory=/home/alpaca/alpaca-agent
-ExecStart=/home/alpaca/alpaca-agent/.venv/bin/gunicorn -c deploy/gunicorn.conf.py dashboard.app:app
+ExecStart=/home/alpaca/alpaca-agent/.venv/bin/gunicorn --no-control-socket -c deploy/gunicorn.conf.py dashboard.app:app
 
 Restart=always
 RestartSec=10
