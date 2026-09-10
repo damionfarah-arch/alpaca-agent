@@ -1,5 +1,18 @@
 # Deploying to a VPS (shadow mode, 24/7)
 
+> **This deployment is already live.**
+> - Server: `root@188.166.174.180` (DigitalOcean, London, Ubuntu 24.04)
+> - Dashboard: `http://188.166.174.180:8080`  (user `admin`)
+> - Code was pushed by rsync (this Mac had no GitHub SSH set up); the GitHub
+>   repo is the backup / source of truth. Update with `bash deploy/push.sh
+>   root@188.166.174.180` from `~/alpaca-agent`.
+> - Services `alpaca-agent` + `alpaca-dashboard` are running and boot-enabled.
+>
+> The generic walkthrough below is kept for reference / rebuilding.
+
+---
+
+
 End state: a ~$6/month Ubuntu server running **two** services that survive
 reboots and crashes independently:
 
@@ -155,7 +168,7 @@ Both should say `active (running)`. Press `q` to exit the status view.
 | Restart a service | `systemctl restart alpaca-agent` |
 | Stop / start | `systemctl stop alpaca-agent` · `systemctl start alpaca-agent` |
 | Check status | `systemctl status alpaca-agent alpaca-dashboard` |
-| **Deploy an update** | on your Mac: `git push` — then on the server (as root): `bash /home/alpaca/alpaca-agent/deploy/setup.sh git@github.com:YOURNAME/alpaca-agent.git` (pulls + reinstalls + restarts) |
+| **Deploy an update** | on your Mac, from `~/alpaca-agent`: `bash deploy/push.sh root@188.166.174.180` (syncs code, reinstalls deps + units, restarts both services) |
 | Change config | `nano /home/alpaca/alpaca-agent/.env` then `systemctl restart alpaca-agent alpaca-dashboard` |
 
 The two services are independent — restarting or crashing one does not affect
