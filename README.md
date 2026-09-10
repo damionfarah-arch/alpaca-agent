@@ -17,16 +17,34 @@ amount of capital as an experiment.
 | 2 | SQLite schema (`db.py`) + `strategy.py` + `agent.py` loop in **shadow mode** | **done, offline selftest passes; awaiting your live paper run** |
 | 3 | Dashboard (`dashboard/`) reading the same DB | **done** |
 | 4 | Flip to live execution (only after you approve) | not started |
-| 5 | systemd packaging + VPS deploy (shadow) | **files ready — see [DEPLOY.md](DEPLOY.md)** |
+| 5 | systemd packaging + VPS deploy (shadow) | **DEPLOYED — running 24/7 on a VPS, see [DEPLOY.md](DEPLOY.md)** |
+
+## Backtester
+
+`backtest.py` replays the **live strategy code** (`strategy.py` + `engine.py`)
+over historical bars and reports return, drawdown, trade count, win rate, fees,
+and a comparison to buy-and-hold. It's a filter for bad ideas, not a forecast.
+
+```bash
+.venv/bin/python -m backtest --start 2024-01-01
+.venv/bin/python -m backtest --start 2024-01-01 --symbols BTC/USD,ETH/USD \
+    --timeframe 1D --ma-fast 10 --ma-slow 30 --crypto-fee-bps 25
+```
+
+Bars are cached under `data/bars_cache/`. Key finding so far: on this strategy,
+**slower timeframes churn less, pay less in fees, and perform better** — daily
+bars beat hourly beat 15-minute over 2025.
 
 ## Dashboard
 
 Separate read-only Flask service. HTTP basic auth (required -- refuses to start
 without `DASHBOARD_PASSWORD`). Dark "self-healing matrix" theme, polls
 `/api/state` every `DASHBOARD_POLL_SECONDS`. Shows: account summary (portfolio
-value, cash, day P&L, all-time P&L), portfolio-value chart, positions
-(stocks + crypto), live trades feed with reasoning, decision log (trade **and**
-no-trade), agent status (mode, kill switch, last/next loop), events.
+value, cash, day P&L, all-time P&L), portfolio-value chart, **per-symbol price +
+fast/slow-MA mini-charts**, positions (stocks + crypto), live trades feed with
+reasoning, decision log (trade **and** no-trade), agent status, events. The
+whole page shifts **green when up / red when down**, and an "agent mind" ticker
+scrolls the latest reasoning across the top.
 
 ```bash
 .venv/bin/python -m dashboard                              # dev server :8080
