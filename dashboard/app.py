@@ -187,6 +187,10 @@ def _config_block() -> dict:
         "base_currency": CONFIG.base_currency,
         "equity_symbols": CONFIG.equity_symbols,
         "crypto_symbols": CONFIG.crypto_symbols,
+        "ma_fast": CONFIG.ma_fast,
+        "ma_slow": CONFIG.ma_slow,
+        "ma_deadband_pct": CONFIG.ma_min_spread_pct,
+        "loop_interval_seconds": CONFIG.loop_interval_seconds,
         "caps": {
             "max_position_notional_usd": CONFIG.risk.max_position_notional_usd,
             "max_total_allocation_usd": CONFIG.risk.max_total_allocation_usd,

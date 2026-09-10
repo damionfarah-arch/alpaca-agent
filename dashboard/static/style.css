@@ -280,6 +280,57 @@ td { font-weight: 400; }
 .chart-dot  { fill: var(--grn); }
 .chart-lbl  { fill: var(--ink-faint); font-size: 10px; }
 
+/* ---------------- neural-activity graphic ---------------- */
+.mind-panel .panel-h { gap: 12px; }
+.mind-meter {
+  width: 90px; height: 5px; border: 1px solid var(--panel-b);
+  background: rgba(0,0,0,.4); overflow: hidden; align-self: center;
+}
+.mind-meter > span {
+  display: block; height: 100%; width: 5%;
+  background: var(--grn); box-shadow: 0 0 8px var(--grn);
+  transition: width .6s ease;
+}
+#mind { padding: 4px 6px 8px; }
+#mind svg { width: 100%; height: 148px; display: block; overflow: visible; }
+
+.nn-edge {
+  stroke: var(--grn);
+  stroke-opacity: calc(0.04 + 0.16 * var(--activity, 0.2));
+  stroke-width: 1;
+  stroke-dasharray: 2 8;
+  animation: nn-flow calc(var(--pulse, 2.2) * 1s) linear infinite;
+  animation-delay: var(--d, 0s);
+}
+@keyframes nn-flow { to { stroke-dashoffset: -20; } }
+
+.nn-node {
+  fill: #08110e;
+  stroke: var(--grn);
+  stroke-width: 1.2;
+  stroke-opacity: calc(0.28 + 0.72 * var(--n, 0.3));
+  filter: drop-shadow(0 0 calc(1px + 7px * var(--n, 0.3)) rgba(38,255,202, calc(0.55 * var(--n, 0.3))));
+}
+.nn-in  { stroke: var(--blue); filter: drop-shadow(0 0 calc(1px + 7px * var(--n,0.3)) rgba(77,210,255, calc(0.55 * var(--n,0.3)))); }
+.nn-out { stroke: var(--amber); filter: drop-shadow(0 0 calc(1px + 7px * var(--n,0.3)) rgba(255,204,77, calc(0.55 * var(--n,0.3)))); }
+.nn-pulse { animation: nn-breathe calc(var(--pulse, 2.2) * 1s) ease-in-out infinite; animation-delay: var(--d, 0s); }
+@keyframes nn-breathe {
+  0%, 100% { r: 3.4px; }
+  50%      { r: calc(3.4px + 3px * var(--activity, 0.3)); }
+}
+.nn-lbl {
+  fill: var(--ink-faint); font-family: var(--mono); font-size: 9px;
+  letter-spacing: 1px;
+}
+
+body[data-pnl="neg"] .nn-edge,
+body[data-pnl="neg"] .nn-node { stroke: var(--red); }
+body[data-pnl="neg"] .mind-meter > span { background: var(--red); box-shadow: 0 0 8px var(--red); }
+
+@media (prefers-reduced-motion: reduce) {
+  .nn-edge, .nn-pulse { animation: none; }
+}
+
 /* ---------------- markets: per-symbol mini charts ---------------- */
 .mkt-grid {
   display: grid;
