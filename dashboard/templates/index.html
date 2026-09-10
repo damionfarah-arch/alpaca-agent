@@ -29,16 +29,6 @@
     </div>
   </div>
 
-  <section class="panel mind-panel">
-    <div class="panel-h">
-      Neural Activity
-      <span class="muted" id="mindState">&mdash;</span>
-      <span class="mind-meter"><span id="mindBar"></span></span>
-      <span class="muted" id="mindPct"></span>
-    </div>
-    <div id="mind" aria-hidden="true"></div>
-  </section>
-
   <div id="banner"></div>
 
   <section class="stats" id="stats">
@@ -48,10 +38,22 @@
     <div class="stat" id="card-all"><div class="label">P&amp;L &mdash; All Time</div><div class="value" id="s-all">&mdash;</div><div class="sub" id="s-all-sub"></div></div>
   </section>
 
-  <section class="panel">
-    <div class="panel-h">Portfolio Value <span class="muted" id="curveMeta"></span></div>
-    <div id="chart"><div class="empty">no equity history yet</div></div>
-  </section>
+  <div class="grid-chart-mind">
+    <section class="panel">
+      <div class="panel-h">Portfolio Value <span class="muted" id="curveMeta"></span></div>
+      <div id="chart"><div class="empty">no equity history yet</div></div>
+    </section>
+
+    <section class="panel mind-panel">
+      <div class="panel-h">
+        Agent Mind
+        <span class="muted" id="mindState">&mdash;</span>
+        <span class="mind-meter"><span id="mindBar"></span></span>
+        <span class="muted" id="mindPct"></span>
+      </div>
+      <div id="mind" aria-hidden="true"></div>
+    </section>
+  </div>
 
   <section class="panel">
     <div class="panel-h">Markets <span class="hint">price + fast/slow MA &mdash; held symbols first</span></div>

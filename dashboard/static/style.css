@@ -268,6 +268,9 @@ td { font-weight: 400; }
 .panel-body { padding: 12px 14px; }
 
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.grid-chart-mind { display: grid; grid-template-columns: minmax(0, 1.85fr) minmax(0, 1fr); gap: 14px; }
+.grid-chart-mind > .panel { margin-bottom: 14px; }
+@media (max-width: 900px) { .grid-chart-mind { grid-template-columns: 1fr; } }
 
 /* ---------------- chart ---------------- */
 #chart { padding: 8px 6px 4px; }
@@ -291,45 +294,33 @@ td { font-weight: 400; }
   background: var(--grn); box-shadow: 0 0 8px var(--grn);
   transition: width .6s ease;
 }
-#mind { padding: 4px 6px 8px; }
-#mind svg { width: 100%; height: 148px; display: block; overflow: visible; }
+#mind {
+  padding: 2px 6px 6px;
+  background: radial-gradient(circle at 50% 45%, rgba(38,255,202,0.05), transparent 55%);
+}
+#mind svg { width: 100%; height: 224px; display: block; overflow: visible; }
 
 .nn-edge {
   stroke: var(--grn);
-  stroke-opacity: calc(0.04 + 0.16 * var(--activity, 0.2));
-  stroke-width: 1;
-  stroke-dasharray: 2 8;
-  animation: nn-flow calc(var(--pulse, 2.2) * 1s) linear infinite;
-  animation-delay: var(--d, 0s);
+  stroke-width: 1.1;
+  stroke-dasharray: 1.5 5;
+  stroke-linecap: round;
 }
-@keyframes nn-flow { to { stroke-dashoffset: -20; } }
-
 .nn-node {
-  fill: #08110e;
+  fill: #0a1512;
   stroke: var(--grn);
   stroke-width: 1.2;
-  stroke-opacity: calc(0.28 + 0.72 * var(--n, 0.3));
-  filter: drop-shadow(0 0 calc(1px + 7px * var(--n, 0.3)) rgba(38,255,202, calc(0.55 * var(--n, 0.3))));
+  stroke-opacity: calc(0.4 + 0.6 * var(--n, 0.3));
+  filter: drop-shadow(0 0 calc(1.5px + 9px * var(--n, 0.3)) rgba(38,255,202, calc(0.7 * var(--n, 0.3))));
 }
-.nn-in  { stroke: var(--blue); filter: drop-shadow(0 0 calc(1px + 7px * var(--n,0.3)) rgba(77,210,255, calc(0.55 * var(--n,0.3)))); }
-.nn-out { stroke: var(--amber); filter: drop-shadow(0 0 calc(1px + 7px * var(--n,0.3)) rgba(255,204,77, calc(0.55 * var(--n,0.3)))); }
-.nn-pulse { animation: nn-breathe calc(var(--pulse, 2.2) * 1s) ease-in-out infinite; animation-delay: var(--d, 0s); }
-@keyframes nn-breathe {
-  0%, 100% { r: 3.4px; }
-  50%      { r: calc(3.4px + 3px * var(--activity, 0.3)); }
-}
-.nn-lbl {
-  fill: var(--ink-faint); font-family: var(--mono); font-size: 9px;
-  letter-spacing: 1px;
-}
+.nn-in  { stroke: var(--blue);
+  filter: drop-shadow(0 0 calc(1px + 8px * var(--n,0.3)) rgba(77,210,255, calc(0.6 * var(--n,0.3)))); }
+.nn-out { stroke: var(--amber);
+  filter: drop-shadow(0 0 calc(1px + 8px * var(--n,0.3)) rgba(255,204,77, calc(0.6 * var(--n,0.3)))); }
 
 body[data-pnl="neg"] .nn-edge,
 body[data-pnl="neg"] .nn-node { stroke: var(--red); }
 body[data-pnl="neg"] .mind-meter > span { background: var(--red); box-shadow: 0 0 8px var(--red); }
-
-@media (prefers-reduced-motion: reduce) {
-  .nn-edge, .nn-pulse { animation: none; }
-}
 
 /* ---------------- markets: per-symbol mini charts ---------------- */
 .mkt-grid {
