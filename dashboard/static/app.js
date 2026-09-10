@@ -247,29 +247,37 @@
 
   function mindActivity(s) {
     const st = s.status, cfg = s.config || {}, mkts = s.markets || [], trs = s.trades || [];
-    if ((st.agent_state || "").startsWith("halted") || st.kill_switch) return 0.04;
+    if ((st.agent_state || "").startsWith("halted") || st.kill_switch) return { act: 0.04, perInput: {} };
 
     const interval = st.loop_interval_seconds || cfg.loop_interval_seconds || 300;
     const age = st.last_loop_finished ? (Date.now() - new Date(st.last_loop_finished)) / 1000 : 9e9;
-    const alive = age < interval * 3 ? 1 : 0.15;
+    const alive = age < interval * 3 ? 1 : 0.2;   // agent stalled -> mind goes quiet
 
+    // "deciding" = MA spread within ~2x the deadband of a cross
     const dead = cfg.ma_deadband_pct || 0.15;
-    let prox = 0, perInput = {};
+    let prox = 0;
+    const perInput = {};
     mkts.forEach((m) => {
-      let a = 0.12;
+      let a = 0.10;
       if (m.fast_ma != null && m.slow_ma) {
         const sp = Math.abs((m.fast_ma - m.slow_ma) / m.slow_ma * 100);
-        a = Math.max(0.12, 1 - sp / (dead * 4)); // within ~4x the deadband -> ramps up
+        a = Math.max(0.10, 1 - sp / (dead * 2));
       }
-      if (m.held) a = Math.max(a, 0.45);
+      if (m.held) a = Math.max(a, 0.22);          // holding is a low, steady hum
       perInput[m.symbol] = a;
       prox = Math.max(prox, a);
     });
 
-    const recentTrade = trs.some((t) => (Date.now() - new Date(t.ts)) / 1000 < 900);
-    const openHum = st.equity_market_open ? 0.22 : 0.10;
-    let act = alive * Math.min(1, openHum + 0.75 * prox + (recentTrade ? 0.45 : 0));
-    return { act: Math.max(0.05, Math.min(1, act)), perInput };
+    // a fresh trade spikes activity, fading over ~8 minutes
+    let tradeBonus = 0;
+    if (trs[0]) {
+      const mins = (Date.now() - new Date(trs[0].ts)) / 60000;
+      tradeBonus = 0.35 * Math.max(0, 1 - mins / 8);
+    }
+
+    const hum = st.equity_market_open ? 0.15 : 0.06;
+    const act = alive * Math.min(1, hum + 0.7 * prox + tradeBonus);
+    return { act: Math.max(0.04, Math.min(1, act)), perInput };
   }
 
   function renderMind(s) {
