@@ -24,6 +24,8 @@
     return a >= 1 ? n.toFixed(4) : n.toPrecision(4);
   };
   const plClass = (n) => n > 0 ? "pos" : n < 0 ? "neg" : "zero";
+  const moodClass = (v) => (v == null || Math.abs(v) < 0.005) ? "m-zero" : (v < 0 ? "m-neg" : "m-pos");
+  const setMood = (el, cls) => { if (el) { el.classList.remove("m-pos", "m-neg", "m-zero"); el.classList.add(cls); } };
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
@@ -96,7 +98,12 @@
       acc.realized_pl != null ? `realised ${signedUsd(acc.realized_pl)}` : ""
     ].filter(Boolean).join(" · ");
 
-    // whole-page P&L mood (drives the top strip + portfolio card + ticker tag)
+    // per-card mood: portfolio & all-time follow all-time P&L, today follows day P&L
+    setMood($("card-equity"), moodClass(acc.all_time_pl));
+    setMood($("card-all"), moodClass(acc.all_time_pl));
+    setMood($("card-day"), moodClass(acc.day_pl));
+
+    // whole-page mood (top strip + ticker tag) follows all-time P&L
     const p = acc.all_time_pl;
     document.body.dataset.pnl = (p == null || Math.abs(p) < 0.005) ? "zero" : (p < 0 ? "neg" : "pos");
   }
@@ -164,22 +171,41 @@
               <text class="chart-lbl" x="${W - padR}" y="${yy - 3}" text-anchor="end">${usd(vv)}</text>`;
     }).join("");
 
-    const baseLine = (baseline != null)
-      ? `<line class="chart-base" x1="${padL}" x2="${W - padR}" y1="${y(baseline).toFixed(1)}" y2="${y(baseline).toFixed(1)}"/>`
-      : "";
-
     const lastI = curve.length - 1;
+    const GRN = "#26ffca", RED = "#ff4d6d";
+
+    // split the line/fill at the baseline: green above it, red below it
+    let baseFrac = 0;          // 0 = top of chart, 1 = bottom
+    let baseLine = "";
+    if (baseline != null) {
+      const by = y(baseline);
+      baseFrac = Math.max(0, Math.min(1, (by - 0) / H));
+      baseLine = `<line class="chart-base" x1="${padL}" x2="${W - padR}" y1="${by.toFixed(1)}" y2="${by.toFixed(1)}"/>`;
+    }
+    const belowNow = baseline != null && curve[lastI].equity < baseline;
+
     box.innerHTML = `
       <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="portfolio value over time">
-        <defs><linearGradient id="cfill" x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0" stop-color="#26ffca" stop-opacity="0.30"/>
-          <stop offset="1" stop-color="#26ffca" stop-opacity="0"/>
-        </linearGradient></defs>
+        <defs>
+          <linearGradient id="cstroke" x1="0" x2="0" y1="0" y2="${H}" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stop-color="${GRN}"/>
+            <stop offset="${baseFrac}" stop-color="${GRN}"/>
+            <stop offset="${baseFrac}" stop-color="${RED}"/>
+            <stop offset="1" stop-color="${RED}"/>
+          </linearGradient>
+          <linearGradient id="cfill" x1="0" x2="0" y1="0" y2="${H}" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stop-color="${GRN}" stop-opacity="0.32"/>
+            <stop offset="${Math.max(0, baseFrac - 0.001)}" stop-color="${GRN}" stop-opacity="0.05"/>
+            <stop offset="${baseFrac}" stop-color="${RED}" stop-opacity="0.05"/>
+            <stop offset="1" stop-color="${RED}" stop-opacity="0.32"/>
+          </linearGradient>
+        </defs>
         ${gridY}
         ${baseLine}
         <polygon class="chart-fill" points="${area}"/>
         <polyline class="chart-line" points="${pts}"/>
-        <circle class="chart-dot" cx="${x(lastI).toFixed(1)}" cy="${y(curve[lastI].equity).toFixed(1)}" r="3"/>
+        <circle cx="${x(lastI).toFixed(1)}" cy="${y(curve[lastI].equity).toFixed(1)}" r="3"
+                fill="${belowNow ? RED : GRN}"/>
       </svg>`;
     $("curveMeta").textContent =
       `${curve.length} pts · ${hhmmss(curve[0].ts)} → ${hhmmss(curve[lastI].ts)}` +

@@ -8,7 +8,7 @@
   <title>alpaca-agent :: matrix</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body data-poll="{{ poll_seconds }}">
@@ -32,10 +32,10 @@
   <div id="banner"></div>
 
   <section class="stats" id="stats">
-    <div class="stat mood"><div class="label">Portfolio Value</div><div class="value" id="s-equity">&mdash;</div><div class="sub" id="s-equity-sub"></div></div>
+    <div class="stat" id="card-equity"><div class="label">Portfolio Value</div><div class="value" id="s-equity">&mdash;</div><div class="sub" id="s-equity-sub"></div></div>
     <div class="stat"><div class="label">Cash</div><div class="value" id="s-cash">&mdash;</div><div class="sub" id="s-cash-sub"></div></div>
-    <div class="stat"><div class="label">P&amp;L &mdash; Today</div><div class="value" id="s-day">&mdash;</div><div class="sub" id="s-day-sub"></div></div>
-    <div class="stat"><div class="label">P&amp;L &mdash; All Time</div><div class="value" id="s-all">&mdash;</div><div class="sub" id="s-all-sub"></div></div>
+    <div class="stat" id="card-day"><div class="label">P&amp;L &mdash; Today</div><div class="value" id="s-day">&mdash;</div><div class="sub" id="s-day-sub"></div></div>
+    <div class="stat" id="card-all"><div class="label">P&amp;L &mdash; All Time</div><div class="value" id="s-all">&mdash;</div><div class="sub" id="s-all-sub"></div></div>
   </section>
 
   <section class="panel">

@@ -14,6 +14,7 @@
   --red:       #ff4d6d;
   --blue:      #4dd2ff;
   --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --num:  "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
   /* P&L mood -- overridden by body[data-pnl] below */
   --pnl:       var(--grn);
@@ -212,19 +213,37 @@ body::before {
   font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
   color: var(--ink-faint); margin-bottom: 6px;
 }
-.stat .value { font-size: 24px; font-weight: 700; color: var(--ink); letter-spacing: 0.5px; }
-.stat .sub  { font-size: 11px; color: var(--ink-dim); margin-top: 3px; }
+.stat .value {
+  font-family: var(--num);
+  font-size: 27px;
+  font-weight: 300;
+  color: var(--ink);
+  letter-spacing: 0.5px;
+  font-feature-settings: "tnum" 1;
+}
+.stat .sub  { font-size: 11px; color: var(--ink-dim); margin-top: 3px; font-family: var(--num); }
 
-/* the portfolio-value card carries the P&L mood */
-.stat.mood {
-  border-color: var(--pnl);
-  background:
-    linear-gradient(180deg, var(--pnl-wash), transparent 70%),
-    var(--panel);
-  box-shadow: inset 0 0 24px -6px var(--pnl-glow);
+/* numbers everywhere read lighter + tabular */
+td, .mkt-price-now, .mkt-head .pos, .mkt-head .neg, .mkt-spread,
+.row .t, .row .meta, .chart-lbl, .kv dd, #lastUpdated, #curveMeta {
+  font-family: var(--num);
+  font-feature-settings: "tnum" 1;
+}
+td { font-weight: 400; }
+
+/* per-card P&L mood -- applied by JS to portfolio / today / all-time cards */
+.stat.m-pos  { --c: var(--grn);     --cg: rgba(38,255,202,0.35);  --cw: rgba(38,255,202,0.05); }
+.stat.m-neg  { --c: var(--red);     --cg: rgba(255,77,109,0.38);  --cw: rgba(255,77,109,0.06); }
+.stat.m-zero { --c: var(--ink-dim); --cg: rgba(111,154,142,0.22); --cw: rgba(111,154,142,0.04); }
+.stat.m-pos, .stat.m-neg, .stat.m-zero {
+  border-color: var(--c);
+  background: linear-gradient(180deg, var(--cw), transparent 70%), var(--panel);
+  box-shadow: inset 0 0 24px -6px var(--cg);
   transition: border-color .4s, box-shadow .4s, background .4s;
 }
-.stat.mood .value { color: var(--pnl); text-shadow: 0 0 14px var(--pnl-glow); }
+.stat.m-pos  .value { color: var(--grn); text-shadow: 0 0 14px rgba(38,255,202,0.35); }
+.stat.m-neg  .value { color: var(--red); text-shadow: 0 0 14px rgba(255,77,109,0.35); }
+.stat.m-zero .value { color: var(--ink-dim); }
 
 .pos { color: var(--grn); }
 .neg { color: var(--red); }
@@ -255,9 +274,9 @@ body::before {
 #chart svg { display: block; width: 100%; height: 220px; }
 .chart-grid { stroke: rgba(38,255,202,0.08); stroke-width: 1; }
 .chart-base { stroke: rgba(255,204,77,0.45); stroke-width: 1; stroke-dasharray: 4 4; }
-.chart-line { fill: none; stroke: var(--grn); stroke-width: 1.6;
-              filter: drop-shadow(0 0 4px rgba(38,255,202,0.5)); }
-.chart-fill { fill: url(#cfill); opacity: 0.5; }
+.chart-line { fill: none; stroke: url(#cstroke); stroke-width: 1.7;
+              filter: drop-shadow(0 0 3px rgba(0,0,0,0.6)); }
+.chart-fill { fill: url(#cfill); opacity: 0.6; }
 .chart-dot  { fill: var(--grn); }
 .chart-lbl  { fill: var(--ink-faint); font-size: 10px; }
 
