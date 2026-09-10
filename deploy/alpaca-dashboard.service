@@ -1,0 +1,38 @@
+[Unit]
+Description=Alpaca agent dashboard (read-only web UI)
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=alpaca
+Group=alpaca
+WorkingDirectory=/home/alpaca/alpaca-agent
+ExecStart=/home/alpaca/alpaca-agent/.venv/bin/gunicorn -c deploy/gunicorn.conf.py dashboard.app:app
+
+Restart=always
+RestartSec=10
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=alpaca-dashboard
+
+# --- sandboxing ---
+# The dashboard issues no INSERT/UPDATE, but SQLite in WAL mode needs to touch
+# the -wal/-shm sidecar files even to read, so data/ must be writable.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/alpaca/alpaca-agent/data
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictNamespaces=true
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target

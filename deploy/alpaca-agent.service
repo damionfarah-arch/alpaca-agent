@@ -1,0 +1,40 @@
+[Unit]
+Description=Alpaca trading agent loop
+After=network-online.target
+Wants=network-online.target
+# if it crashes 5 times in 5 min, stop trying (likely a config error) --
+# check:  journalctl -u alpaca-agent -n 50  ;  then:  systemctl reset-failed alpaca-agent
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=alpaca
+Group=alpaca
+WorkingDirectory=/home/alpaca/alpaca-agent
+ExecStart=/home/alpaca/alpaca-agent/.venv/bin/python -m agent
+# .env is read by the app itself (python-dotenv), relative to WorkingDirectory.
+
+Restart=always
+RestartSec=10
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=alpaca-agent
+
+# --- sandboxing: the agent may only write to its data/ directory ---
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/alpaca/alpaca-agent/data
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictNamespaces=true
+LockPersonality=true
+MemoryDenyWriteExecute=false
+
+[Install]
+WantedBy=multi-user.target

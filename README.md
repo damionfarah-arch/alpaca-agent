@@ -17,7 +17,7 @@ amount of capital as an experiment.
 | 2 | SQLite schema (`db.py`) + `strategy.py` + `agent.py` loop in **shadow mode** | **done, offline selftest passes; awaiting your live paper run** |
 | 3 | Dashboard (`dashboard/`) reading the same DB | **done** |
 | 4 | Flip to live execution (only after you approve) | not started |
-| 5 | systemd packaging + VPS deploy | not started |
+| 5 | systemd packaging + VPS deploy (shadow) | **files ready — see [DEPLOY.md](DEPLOY.md)** |
 
 ## Dashboard
 
@@ -35,7 +35,14 @@ DB_PATH=./data/demo.db .venv/bin/python -m dashboard       # view seeded demo da
 .venv/bin/python -m scripts.seed_demo    # writes fake data to data/demo.db only
 ```
 
-Production (step 5): `gunicorn -b 0.0.0.0:8080 'dashboard.app:app'`.
+Production (step 5): `gunicorn -c deploy/gunicorn.conf.py dashboard.app:app`.
+
+## Deployment
+
+`deploy/` holds two systemd units (`alpaca-agent`, `alpaca-dashboard` — restart
+on crash + boot, independent of each other), a gunicorn config, and `setup.sh`
+(idempotent server bootstrap + updater). Full walkthrough — provision a droplet,
+push to GitHub, run setup — in **[DEPLOY.md](DEPLOY.md)**.
 
 ## Step 2 check — run these
 
