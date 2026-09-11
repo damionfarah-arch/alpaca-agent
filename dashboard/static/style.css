@@ -303,23 +303,24 @@ td { font-weight: 400; }
 
 .nn-edge {
   stroke: var(--grn);
-  stroke-opacity: calc(0.04 + 0.16 * var(--activity, 0.2));
-  stroke-width: 1;
-  stroke-dasharray: 2 8;
+  stroke-opacity: calc(0.30 + 0.55 * var(--activity, 0.2));
+  stroke-width: 1.4;
+  stroke-dasharray: 3 6;
+  filter: drop-shadow(0 0 2px rgba(38,255,202,0.5));
   animation: nn-flow calc(var(--pulse, 2.2) * 1s) linear infinite;
   animation-delay: var(--d, 0s);
 }
-@keyframes nn-flow { to { stroke-dashoffset: -20; } }
+@keyframes nn-flow { to { stroke-dashoffset: -18; } }
 
 .nn-node {
-  fill: #08110e;
+  fill: #0d1a16;
   stroke: var(--grn);
-  stroke-width: 1.2;
-  stroke-opacity: calc(0.28 + 0.72 * var(--n, 0.3));
-  filter: drop-shadow(0 0 calc(1px + 7px * var(--n, 0.3)) rgba(38,255,202, calc(0.55 * var(--n, 0.3))));
+  stroke-width: 1.6;
+  stroke-opacity: calc(0.6 + 0.4 * var(--n, 0.3));
+  filter: drop-shadow(0 0 calc(2px + 10px * var(--n, 0.3)) rgba(38,255,202, calc(0.8 * var(--n, 0.3))));
 }
-.nn-in  { stroke: var(--blue); filter: drop-shadow(0 0 calc(1px + 7px * var(--n,0.3)) rgba(77,210,255, calc(0.55 * var(--n,0.3)))); }
-.nn-out { stroke: var(--amber); filter: drop-shadow(0 0 calc(1px + 7px * var(--n,0.3)) rgba(255,204,77, calc(0.55 * var(--n,0.3)))); }
+.nn-in  { stroke: var(--blue); filter: drop-shadow(0 0 calc(2px + 10px * var(--n,0.3))  rgba(77,210,255, calc(0.8 * var(--n,0.3)))); }
+.nn-out { stroke: var(--amber); filter: drop-shadow(0 0 calc(2px + 10px * var(--n,0.3)) rgba(255,204,77, calc(0.8 * var(--n,0.3)))); }
 .nn-pulse { animation: nn-breathe calc(var(--pulse, 2.2) * 1s) ease-in-out infinite; animation-delay: var(--d, 0s); }
 @keyframes nn-breathe {
   0%, 100% { r: 3.4px; }
