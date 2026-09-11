@@ -212,65 +212,126 @@
       (baseline != null ? ` · baseline ${usd(baseline)}` : "");
   }
 
-  // ---------- neural-activity graphic: a glowing "cybernetic brain" ----------
-  const MIND = { built: false };
+  // ---------- neural-activity graphic: a translucent, slowly-spinning 3D brain ----------
+  const MIND_REDUCED = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const MIND = {
+    built: false, raf: 0, rot: 0, t0: 0,
+    W: 340, H: 210, R: 82,
+    nodes: [], edges: [], nodeEls: [], edgeEls: [],
+    activity: 0.2,
+  };
+
+  function fibSphere(n) {
+    const pts = [], gold = Math.PI * (3 - Math.sqrt(5));
+    for (let i = 0; i < n; i++) {
+      const y = 1 - (i / (n - 1)) * 2;
+      const rad = Math.sqrt(1 - y * y);
+      const th = gold * i;
+      pts.push({ x: Math.cos(th) * rad, y, z: Math.sin(th) * rad });
+    }
+    return pts;
+  }
 
   function buildMind() {
-    const W = 400, H = 250;
-    // overlapping lobes approximating a side-profile brain mass (main mass,
-    // frontal + temporal bumps, cerebellum, brainstem-ish nub)
-    const lobes = [
-      { cx: 190, cy: 118, r: 86 }, { cx: 118, cy: 100, r: 54 },
-      { cx: 258, cy: 96, r: 52 }, { cx: 292, cy: 162, r: 32 },
-      { cx: 182, cy: 172, r: 56 }, { cx: 228, cy: 58, r: 36 },
-      { cx: 130, cy: 150, r: 40 },
-    ];
-    const inBrain = (x, y) => lobes.some((l) => (x - l.cx) ** 2 + (y - l.cy) ** 2 <= l.r * l.r * 0.9);
+    const N = 64;
+    const raw = fibSphere(N);
+    // deform the unit sphere into an organic, slightly lopsided brain-ish blob
+    MIND.nodes = raw.map((p) => ({
+      x: p.x * 1.22 + (Math.random() - 0.5) * 0.10,
+      y: p.y * 0.90 + (Math.random() - 0.5) * 0.10,
+      z: p.z * 1.05 + (Math.random() - 0.5) * 0.10,
+      spark: false,
+    }));
+    const sparkIdx = new Set(
+      MIND.nodes.map((_, i) => i).sort(() => Math.random() - 0.5).slice(0, Math.round(N * 0.22))
+    );
+    MIND.nodes.forEach((n, i) => { n.spark = sparkIdx.has(i); });
 
-    const N = 90;
-    const pts = [];
-    for (let tries = 0; pts.length < N && tries < 6000; tries++) {
-      const x = 14 + Math.random() * (W - 28), y = 14 + Math.random() * (H - 28);
-      if (inBrain(x, y)) pts.push({ x, y });
-    }
-
-    const seen = new Set(), edges = [];
-    pts.forEach((a, i) => {
-      pts.map((b, j) => ({ j, d: (a.x - b.x) ** 2 + (a.y - b.y) ** 2 }))
+    // connect each point to its 2 nearest neighbours in 3D
+    const seen = new Set();
+    MIND.edges = [];
+    MIND.nodes.forEach((a, i) => {
+      MIND.nodes.map((b, j) => ({ j, d: (a.x - b.x) ** 2 + (a.y - b.y) ** 2 + (a.z - b.z) ** 2 }))
         .filter((o) => o.j !== i).sort((p, q) => p.d - q.d).slice(0, 2)
         .forEach((o) => {
           const key = i < o.j ? `${i}-${o.j}` : `${o.j}-${i}`;
-          if (!seen.has(key)) { seen.add(key); edges.push([i, o.j]); }
+          if (!seen.has(key)) { seen.add(key); MIND.edges.push([i, o.j]); }
         });
     });
 
-    const glowSvg = lobes.map((l) => `<circle cx="${l.cx}" cy="${l.cy}" r="${l.r}"/>`).join("");
-    const edgeSvg = edges.map(([i, j], k) =>
-      `<line class="brain-edge" x1="${pts[i].x.toFixed(1)}" y1="${pts[i].y.toFixed(1)}" x2="${pts[j].x.toFixed(1)}" y2="${pts[j].y.toFixed(1)}" style="--d:${(k * 0.13 % 3).toFixed(2)}s"/>`
-    ).join("");
-    const sparkSet = new Set(
-      pts.map((_, i) => i).sort(() => Math.random() - 0.5).slice(0, Math.round(N * 0.2))
-    );
-    const dotSvg = pts.map((p, i) => {
-      const spark = sparkSet.has(i);
-      return `<circle class="${spark ? "brain-spark" : "brain-dot"}" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${spark ? 1.5 : 0.8}" style="--d:${(Math.random() * 4).toFixed(2)}s;--dd:${(2.2 + Math.random() * 2.4).toFixed(2)}s"/>`;
+    const eSvg = MIND.edges.map((_, i) => `<line class="brain-edge" id="bE${i}"/>`).join("");
+    const nSvg = MIND.nodes.map((n, i) => {
+      const cls = n.spark ? "brain-spark" : "brain-dot";
+      return `<circle class="${cls}" id="bN${i}" r="1" style="--dd:${(2.3 + Math.random() * 2.6).toFixed(2)}s;--d:${(Math.random() * 4).toFixed(2)}s"/>`;
     }).join("");
-
-    $("mind").innerHTML = `
-      <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
-        <defs>
-          <filter id="brainBlur" x="-40%" y="-40%" width="180%" height="180%">
-            <feGaussianBlur in="SourceGraphic" stdDeviation="9" result="b"/>
-            <feColorMatrix in="b" type="matrix"
-              values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 20 -9"/>
-          </filter>
-        </defs>
-        <g class="brain-glow" filter="url(#brainBlur)">${glowSvg}</g>
-        <g class="brain-mesh">${edgeSvg}</g>
-        <g class="brain-dots">${dotSvg}</g>
-      </svg>`;
+    $("mind").innerHTML =
+      `<svg viewBox="0 0 ${MIND.W} ${MIND.H}" preserveAspectRatio="xMidYMid meet"><g id="mindG">${eSvg}${nSvg}</g></svg>`;
+    MIND.edgeEls = MIND.edges.map((_, i) => document.getElementById("bE" + i));
+    MIND.nodeEls = MIND.nodes.map((_, i) => document.getElementById("bN" + i));
+    MIND.g = document.getElementById("mindG");
     MIND.built = true;
+    drawMind(0);
+    if (!MIND_REDUCED) startMind();
   }
+
+  function startMind() {
+    if (MIND.raf) return;
+    MIND.t0 = performance.now();
+    const loop = (t) => {
+      if (document.hidden) { MIND.raf = 0; return; }   // pause when tab hidden
+      drawMind(t - MIND.t0);
+      MIND.raf = requestAnimationFrame(loop);
+    };
+    MIND.raf = requestAnimationFrame(loop);
+  }
+
+  function drawMind(ms) {
+    const { W, H, R, nodes } = MIND;
+    const cx = W / 2, cy = H / 2;
+    MIND.rot += 0.0011 + 0.006 * MIND.activity;          // slow spin, faster when busy
+    const cr = Math.cos(MIND.rot), sr = Math.sin(MIND.rot);
+    const tc = Math.cos(0.34), ts = Math.sin(0.34);       // fixed gentle tilt
+
+    const P = nodes.map((n) => {
+      const x = n.x * cr + n.z * sr;
+      const z = -n.x * sr + n.z * cr;
+      const y2 = n.y * tc - z * ts;
+      const z2 = n.y * ts + z * tc;
+      return { sx: cx + x * R, sy: cy + y2 * R, d: z2 };   // d: -1 back .. +1 front
+    });
+
+    const actMul = (0.45 + 0.55 * MIND.activity).toFixed(3);
+    const flow = ((ms * 0.018 * (0.3 + MIND.activity)) % 14).toFixed(1);
+    MIND.edgeEls.forEach((el, i) => {
+      const a = P[MIND.edges[i][0]], b = P[MIND.edges[i][1]];
+      const front = ((a.d + b.d) / 2) * 0.5 + 0.5;         // 0..1
+      el.setAttribute("x1", a.sx.toFixed(1)); el.setAttribute("y1", a.sy.toFixed(1));
+      el.setAttribute("x2", b.sx.toFixed(1)); el.setAttribute("y2", b.sy.toFixed(1));
+      el.setAttribute("stroke-opacity", ((0.06 + 0.22 * front) * actMul).toFixed(3));
+      el.setAttribute("stroke-dashoffset", -flow);
+    });
+
+    const order = P.map((p, i) => i).sort((i, j) => P[i].d - P[j].d);  // back-to-front
+    order.forEach((i) => {
+      const n = nodes[i], p = P[i], el = MIND.nodeEls[i];
+      const front = p.d * 0.5 + 0.5;
+      el.setAttribute("cx", p.sx.toFixed(1));
+      el.setAttribute("cy", p.sy.toFixed(1));
+      el.style.setProperty("--front", front.toFixed(2));
+      el.style.setProperty("--actmul", actMul);
+      if (n.spark) {
+        el.setAttribute("r", (1.0 + 1.1 * front).toFixed(2));
+      } else {
+        el.setAttribute("r", (0.5 + 0.7 * front).toFixed(2));
+        el.style.opacity = ((0.10 + 0.35 * front) * actMul).toFixed(3);
+      }
+      MIND.g.appendChild(el);   // reorder back-to-front each frame
+    });
+  }
+
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden && MIND.built && !MIND.raf && !MIND_REDUCED) startMind();
+  });
 
   function mindActivity(s) {
     const st = s.status, cfg = s.config || {}, mkts = s.markets || [], trs = s.trades || [];

@@ -301,43 +301,36 @@ td { font-weight: 400; }
   overflow: visible;
 }
 
-/* soft glowing mass behind the mesh -- gives the brain its silhouette */
-.brain-glow {
-  mix-blend-mode: screen;
-  opacity: calc(0.10 + 0.16 * var(--activity, 0.2));
-  transition: opacity .6s ease;
-}
-.brain-glow circle { fill: var(--blue); }
-
-/* connective mesh */
-.brain-mesh { opacity: calc(0.4 + 0.6 * var(--activity, 0.2)); transition: opacity .6s ease; }
+/* translucent, depth-cued -- JS (drawMind) sets cx/cy/r/opacity/--front every
+   frame as the cloud rotates, so CSS mostly supplies colour + glow + twinkle */
 .brain-edge {
   stroke: var(--blue);
-  stroke-width: 0.55;
-  stroke-opacity: 0.75;
-  filter: drop-shadow(0 0 1.5px var(--blue));
-  animation: brain-shimmer calc(var(--pulse, 2.6) * 1s) ease-in-out infinite;
-  animation-delay: var(--d, 0s);
+  stroke-width: 0.6;
+  stroke-dasharray: 2 6;
+  mix-blend-mode: screen;
 }
-@keyframes brain-shimmer { 0%, 100% { opacity: .3; } 50% { opacity: 1; } }
-
-/* faint fill points */
-.brain-dots { opacity: calc(0.6 + 0.4 * var(--activity, 0.2)); transition: opacity .6s ease; }
-.brain-dot { fill: var(--blue); opacity: 0.85; filter: drop-shadow(0 0 1.5px var(--blue)); }
-
-/* bright twinkling highlights */
+.brain-dot {
+  fill: var(--blue);
+  filter: drop-shadow(0 0 1.5px var(--blue));
+  mix-blend-mode: screen;
+}
 .brain-spark {
   fill: #eafcff;
   filter: drop-shadow(0 0 3px var(--blue)) drop-shadow(0 0 8px var(--blue));
+  mix-blend-mode: screen;
   animation: brain-twinkle var(--dd, 3s) ease-in-out infinite;
   animation-delay: var(--d, 0s);
 }
 @keyframes brain-twinkle {
-  0%, 100% { opacity: .18; r: 0.9px; }
-  50%      { opacity: 1;   r: 2px; }
+  0%, 100% { opacity: calc(0.12 * var(--front, 0.5) * var(--actmul, 0.5)); }
+  50%      { opacity: calc(1.0  * var(--front, 0.5) * var(--actmul, 0.5)); }
 }
 
 body[data-pnl="neg"] #mind svg { filter: hue-rotate(150deg) saturate(1.5); }
+
+@media (prefers-reduced-motion: reduce) {
+  .brain-spark { animation: none; opacity: calc(0.55 * var(--front, 0.5) * var(--actmul, 0.5)); }
+}
 
 body[data-pnl="neg"] .nn-edge,
 body[data-pnl="neg"] .nn-node { stroke: var(--red); }
