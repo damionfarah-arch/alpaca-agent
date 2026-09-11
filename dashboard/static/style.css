@@ -331,6 +331,13 @@ td { font-weight: 400; }
   filter: drop-shadow(0 0 2px #eafff6) drop-shadow(0 0 6px var(--grn));
 }
 
+.pulse-ring {
+  fill: none;
+  stroke: var(--grn);
+  stroke-width: 1;
+  filter: drop-shadow(0 0 2px var(--grn));
+}
+
 @media (prefers-reduced-motion: reduce) {
   .brain-spark { animation: none; opacity: calc(0.55 * var(--front, 0.5) * var(--actmul, 0.5)); }
 }

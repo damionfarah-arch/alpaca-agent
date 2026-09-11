@@ -219,7 +219,8 @@
     W: 340, H: 210, R: 82,
     nodes: [], edges: [], nodeEls: [], edgeEls: [],
     nodeFlash: [], edgeFlash: [], electrons: [], electronEls: [],
-    poolSize: 42, nextSpawn: 0,
+    poolSize: 84, nextSpawn: 0,
+    pulses: [], pulseEls: [], pulsePoolSize: 40,
     activity: 0.2,
   };
   const FLASH_MS = 380;   // node brighten decay window (fire + receipt)
@@ -274,14 +275,19 @@
     }).join("");
     const xSvg = Array.from({ length: MIND.poolSize }, (_, i) =>
       `<circle class="electron" id="bX${i}" r="0"/>`).join("");
+    const pSvg = Array.from({ length: MIND.pulsePoolSize }, (_, i) =>
+      `<circle class="pulse-ring" id="bP${i}" r="0"/>`).join("");
     $("mind").innerHTML =
       `<svg viewBox="0 0 ${MIND.W} ${MIND.H}" preserveAspectRatio="xMidYMid meet">
          <g id="mindG">${eSvg}${nSvg}</g>
+         <g id="mindP">${pSvg}</g>
          <g id="mindX">${xSvg}</g>
        </svg>`;
     MIND.edgeEls = MIND.edges.map((_, i) => document.getElementById("bE" + i));
     MIND.nodeEls = MIND.nodes.map((_, i) => document.getElementById("bN" + i));
     MIND.electronEls = Array.from({ length: MIND.poolSize }, (_, i) => document.getElementById("bX" + i));
+    MIND.pulseEls = Array.from({ length: MIND.pulsePoolSize }, (_, i) => document.getElementById("bP" + i));
+    MIND.pulses = [];
     MIND.g = document.getElementById("mindG");
     MIND.built = true;
     drawMind(0);
@@ -290,6 +296,11 @@
 
   function flashBoost(until, ms, norm) {
     return until > ms ? Math.min(1, (until - ms) / norm) : 0;
+  }
+
+  function spawnPulse(x, y, ms) {
+    if (MIND.pulses.length >= MIND.pulsePoolSize) return;
+    MIND.pulses.push({ x, y, start: ms, dur: 480 });
   }
 
   function startMind() {
@@ -322,10 +333,10 @@
 
     // ---- fire new electrons at a rate that reflects activity ----
     if (MIND.edges.length && ms >= MIND.nextSpawn) {
-      const avgGap = 1900 - 1650 * MIND.activity;               // idle ~1.9s apart, busy ~0.25s
-      let bursts = 1;
-      if (MIND.activity > 0.3) bursts = 3;
-      if (MIND.activity > 0.6) bursts = Math.random() < 0.5 ? 6 : 5;
+      const avgGap = 950 - 825 * MIND.activity;                 // idle ~0.95s apart, busy ~0.125s
+      let bursts = 2;
+      if (MIND.activity > 0.3) bursts = 6;
+      if (MIND.activity > 0.6) bursts = Math.random() < 0.5 ? 12 : 10;
       for (let k = 0; k < bursts; k++) {
         if (MIND.electrons.length >= MIND.poolSize) break;
         const eIdx = Math.floor(Math.random() * MIND.edges.length);
@@ -334,15 +345,32 @@
         MIND.electrons.push({ edge: eIdx, a, b, start: ms, dur });
         MIND.nodeFlash[a] = ms + FLASH_MS;        // brighten the firing node
         MIND.edgeFlash[eIdx] = ms + dur;          // light up the wire while current flows
+        spawnPulse(P[a].sx, P[a].sy, ms);         // ring pulse where it departs
       }
       MIND.nextSpawn = ms + avgGap * (0.55 + Math.random() * 0.9);
     }
 
-    // ---- advance in-flight electrons; flash the node on arrival ----
+    // ---- advance in-flight electrons; flash + pulse the node on arrival ----
     MIND.electrons = MIND.electrons.filter((e) => {
-      if (ms - e.start >= e.dur) { MIND.nodeFlash[e.b] = ms + FLASH_MS; return false; }
+      if (ms - e.start >= e.dur) {
+        MIND.nodeFlash[e.b] = ms + FLASH_MS;
+        spawnPulse(P[e.b].sx, P[e.b].sy, ms);     // ring pulse where it arrives
+        return false;
+      }
       return true;
     });
+
+    // ---- advance ring pulses ----
+    MIND.pulses = MIND.pulses.filter((p) => ms - p.start < p.dur);
+    for (let i = 0; i < MIND.pulsePoolSize; i++) {
+      const el = MIND.pulseEls[i], p = MIND.pulses[i];
+      if (!p) { el.setAttribute("r", 0); continue; }
+      const frac = (ms - p.start) / p.dur;
+      el.setAttribute("cx", p.x.toFixed(1));
+      el.setAttribute("cy", p.y.toFixed(1));
+      el.setAttribute("r", (1.5 + 8 * frac).toFixed(2));
+      el.setAttribute("stroke-opacity", (0.6 * (1 - frac)).toFixed(3));
+    }
 
     const flow = ((ms * 0.018 * (0.3 + MIND.activity)) % 14).toFixed(1);
     MIND.edgeEls.forEach((el, i) => {
