@@ -326,6 +326,11 @@ td { font-weight: 400; }
   50%      { opacity: calc(1.0  * var(--front, 0.5) * var(--actmul, 0.5)); }
 }
 
+.electron {
+  fill: #eafcff;
+  filter: drop-shadow(0 0 2px #eafcff) drop-shadow(0 0 6px var(--blue));
+}
+
 body[data-pnl="neg"] #mind svg { filter: hue-rotate(150deg) saturate(1.5); }
 
 @media (prefers-reduced-motion: reduce) {

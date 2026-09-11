@@ -218,8 +218,11 @@
     built: false, raf: 0, rot: 0, t0: 0,
     W: 340, H: 210, R: 82,
     nodes: [], edges: [], nodeEls: [], edgeEls: [],
+    nodeFlash: [], edgeFlash: [], electrons: [], electronEls: [],
+    poolSize: 16, nextSpawn: 0,
     activity: 0.2,
   };
+  const FLASH_MS = 380;   // node brighten decay window (fire + receipt)
 
   function fibSphere(n) {
     const pts = [], gold = Math.PI * (3 - Math.sqrt(5));
@@ -259,19 +262,34 @@
         });
     });
 
+    MIND.nodeFlash = new Array(MIND.nodes.length).fill(0);
+    MIND.edgeFlash = new Array(MIND.edges.length).fill(0);
+    MIND.electrons = [];
+    MIND.nextSpawn = 0;
+
     const eSvg = MIND.edges.map((_, i) => `<line class="brain-edge" id="bE${i}"/>`).join("");
     const nSvg = MIND.nodes.map((n, i) => {
       const cls = n.spark ? "brain-spark" : "brain-dot";
       return `<circle class="${cls}" id="bN${i}" r="1" style="--dd:${(2.3 + Math.random() * 2.6).toFixed(2)}s;--d:${(Math.random() * 4).toFixed(2)}s"/>`;
     }).join("");
+    const xSvg = Array.from({ length: MIND.poolSize }, (_, i) =>
+      `<circle class="electron" id="bX${i}" r="0"/>`).join("");
     $("mind").innerHTML =
-      `<svg viewBox="0 0 ${MIND.W} ${MIND.H}" preserveAspectRatio="xMidYMid meet"><g id="mindG">${eSvg}${nSvg}</g></svg>`;
+      `<svg viewBox="0 0 ${MIND.W} ${MIND.H}" preserveAspectRatio="xMidYMid meet">
+         <g id="mindG">${eSvg}${nSvg}</g>
+         <g id="mindX">${xSvg}</g>
+       </svg>`;
     MIND.edgeEls = MIND.edges.map((_, i) => document.getElementById("bE" + i));
     MIND.nodeEls = MIND.nodes.map((_, i) => document.getElementById("bN" + i));
+    MIND.electronEls = Array.from({ length: MIND.poolSize }, (_, i) => document.getElementById("bX" + i));
     MIND.g = document.getElementById("mindG");
     MIND.built = true;
     drawMind(0);
     if (!MIND_REDUCED) startMind();
+  }
+
+  function flashBoost(until, ms, norm) {
+    return until > ms ? Math.min(1, (until - ms) / norm) : 0;
   }
 
   function startMind() {
@@ -300,25 +318,49 @@
       return { sx: cx + x * R, sy: cy + y2 * R, d: z2 };   // d: -1 back .. +1 front
     });
 
-    const actMul = (0.45 + 0.55 * MIND.activity).toFixed(3);
+    const actMul = 0.45 + 0.55 * MIND.activity;
+
+    // ---- fire new electrons at a rate that reflects activity ----
+    if (MIND.edges.length && ms >= MIND.nextSpawn) {
+      const avgGap = 3400 - 3000 * MIND.activity;              // idle ~3.4s apart, busy ~0.4s
+      const bursts = MIND.activity > 0.75 && Math.random() < 0.5 ? 2 : 1;
+      for (let k = 0; k < bursts; k++) {
+        if (MIND.electrons.length >= MIND.poolSize) break;
+        const eIdx = Math.floor(Math.random() * MIND.edges.length);
+        const [a, b] = MIND.edges[eIdx];
+        const dur = 420 + Math.random() * 380;
+        MIND.electrons.push({ edge: eIdx, a, b, start: ms, dur });
+        MIND.nodeFlash[a] = ms + FLASH_MS;        // brighten the firing node
+        MIND.edgeFlash[eIdx] = ms + dur;          // light up the wire while current flows
+      }
+      MIND.nextSpawn = ms + avgGap * (0.55 + Math.random() * 0.9);
+    }
+
+    // ---- advance in-flight electrons; flash the node on arrival ----
+    MIND.electrons = MIND.electrons.filter((e) => {
+      if (ms - e.start >= e.dur) { MIND.nodeFlash[e.b] = ms + FLASH_MS; return false; }
+      return true;
+    });
+
     const flow = ((ms * 0.018 * (0.3 + MIND.activity)) % 14).toFixed(1);
     MIND.edgeEls.forEach((el, i) => {
       const a = P[MIND.edges[i][0]], b = P[MIND.edges[i][1]];
       const front = ((a.d + b.d) / 2) * 0.5 + 0.5;         // 0..1
+      const carrying = flashBoost(MIND.edgeFlash[i], ms, 550) * 0.55;
       el.setAttribute("x1", a.sx.toFixed(1)); el.setAttribute("y1", a.sy.toFixed(1));
       el.setAttribute("x2", b.sx.toFixed(1)); el.setAttribute("y2", b.sy.toFixed(1));
-      el.setAttribute("stroke-opacity", ((0.06 + 0.22 * front) * actMul).toFixed(3));
+      el.setAttribute("stroke-opacity", (((0.06 + 0.22 * front) * actMul) + carrying).toFixed(3));
       el.setAttribute("stroke-dashoffset", -flow);
     });
 
     const order = P.map((p, i) => i).sort((i, j) => P[i].d - P[j].d);  // back-to-front
     order.forEach((i) => {
       const n = nodes[i], p = P[i], el = MIND.nodeEls[i];
-      const front = p.d * 0.5 + 0.5;
+      const front = Math.min(1, p.d * 0.5 + 0.5 + flashBoost(MIND.nodeFlash[i], ms, FLASH_MS) * 0.9);
       el.setAttribute("cx", p.sx.toFixed(1));
       el.setAttribute("cy", p.sy.toFixed(1));
       el.style.setProperty("--front", front.toFixed(2));
-      el.style.setProperty("--actmul", actMul);
+      el.style.setProperty("--actmul", actMul.toFixed(3));
       if (n.spark) {
         el.setAttribute("r", (1.0 + 1.1 * front).toFixed(2));
       } else {
@@ -327,6 +369,20 @@
       }
       MIND.g.appendChild(el);   // reorder back-to-front each frame
     });
+
+    // ---- render in-flight electrons (pooled elements, unused ones hidden) ----
+    for (let i = 0; i < MIND.poolSize; i++) {
+      const el = MIND.electronEls[i], e = MIND.electrons[i];
+      if (!e) { el.setAttribute("r", 0); continue; }
+      const frac = Math.min(1, (ms - e.start) / e.dur);
+      const pa = P[e.a], pb = P[e.b];
+      const x = pa.sx + (pb.sx - pa.sx) * frac, y = pa.sy + (pb.sy - pa.sy) * frac;
+      const front = (pa.d + (pb.d - pa.d) * frac) * 0.5 + 0.5;
+      el.setAttribute("cx", x.toFixed(1));
+      el.setAttribute("cy", y.toFixed(1));
+      el.setAttribute("r", (1.1 + 0.9 * front).toFixed(2));
+      el.style.opacity = (0.55 + 0.45 * front).toFixed(2);
+    }
   }
 
   document.addEventListener("visibilitychange", () => {
