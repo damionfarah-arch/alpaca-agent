@@ -212,115 +212,37 @@
       (baseline != null ? ` · baseline ${usd(baseline)}` : "");
   }
 
-  // ---------- neural-activity graphic: a rotating neuron sphere ----------
-  const REDUCED = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const MIND = {
-    built: false, raf: 0, rot: 0, t0: 0,
-    W: 340, H: 232, R: 104,
-    nodes: [], edges: [], nodeEls: [], edgeEls: [],
-    activity: 0.2, perInput: {}, motor: { buy: 0.2, hold: 0.2, sell: 0.2 },
-  };
-
-  function fibSphere(n) {
-    const pts = [], gold = Math.PI * (3 - Math.sqrt(5));
-    for (let i = 0; i < n; i++) {
-      const y = 1 - (i / (n - 1)) * 2;
-      const rad = Math.sqrt(1 - y * y);
-      const th = gold * i;
-      pts.push({ x: Math.cos(th) * rad, y, z: Math.sin(th) * rad });
-    }
-    return pts;
-  }
+  // ---------- neural-activity graphic ----------
+  const MIND = { built: false, layers: [4, 7, 7, 3] };
 
   function buildMind() {
-    const N = 30;
-    const raw = fibSphere(N);
-    MIND.nodes = raw.map((p) => ({ ...p, kind: "inter" }));
-    const sensoryIdx = [3, 10, 17, 24];
-    sensoryIdx.forEach((idx, k) => { MIND.nodes[idx].kind = "sensory"; MIND.nodes[idx].slot = k; });
-    const motorIdx = [0, 1, 2];
-    ["buy", "hold", "sell"].forEach((m, k) => { MIND.nodes[motorIdx[k]].kind = "motor"; MIND.nodes[motorIdx[k]].motor = m; });
-
-    // edges: connect each node to its 3 nearest neighbours (by angle)
-    const seen = new Set();
-    MIND.edges = [];
-    MIND.nodes.forEach((a, i) => {
-      const d = MIND.nodes.map((b, j) => ({ j, dot: a.x * b.x + a.y * b.y + a.z * b.z }))
-        .filter((o) => o.j !== i).sort((p, q) => q.dot - p.dot).slice(0, 3);
-      d.forEach((o) => {
-        const key = i < o.j ? `${i}-${o.j}` : `${o.j}-${i}`;
-        if (!seen.has(key)) { seen.add(key); MIND.edges.push([i, o.j]); }
+    const W = 1000, H = 148, padX = 46, padY = 16;
+    const cols = MIND.layers.length;
+    const nodePos = MIND.layers.map((n, li) => {
+      const cx = padX + (li / (cols - 1)) * (W - 2 * padX);
+      return Array.from({ length: n }, (_, i) => ({
+        x: cx,
+        y: padY + (n === 1 ? (H - 2 * padY) / 2 : (i / (n - 1)) * (H - 2 * padY)),
+      }));
+    });
+    let edges = "", nodes = "", d = 0;
+    for (let li = 0; li < cols - 1; li++) {
+      nodePos[li].forEach((a, ai) => {
+        nodePos[li + 1].forEach((b, bi) => {
+          d = (d + 0.37) % 3;
+          edges += `<line class="nn-edge" x1="${a.x}" y1="${a.y.toFixed(1)}" x2="${b.x}" y2="${b.y.toFixed(1)}" style="--d:${d.toFixed(2)}s"/>`;
+        });
       });
-    });
-
-    const eSvg = MIND.edges.map((_, i) =>
-      `<line class="nn-edge" id="mE${i}" style="--d:${(i * 0.11 % 2).toFixed(2)}s"/>`).join("");
-    const nSvg = MIND.nodes.map((n, i) => {
-      const cls = n.kind === "sensory" ? "nn-node nn-in" : n.kind === "motor" ? "nn-node nn-out" : "nn-node";
-      return `<circle class="${cls}" id="mN${i}" r="3" style="--n:0.25"/>`;
-    }).join("");
+    }
+    nodePos.forEach((layer, li) => layer.forEach((p, i) => {
+      const cls = li === 0 ? "nn-node nn-in" : li === cols - 1 ? "nn-node nn-out" : "nn-node";
+      nodes += `<circle class="${cls} nn-pulse" id="n-${li}-${i}" cx="${p.x}" cy="${p.y.toFixed(1)}" r="4" style="--n:0.3;--d:${(i * 0.19).toFixed(2)}s"/>`;
+    }));
+    const outLbl = ["BUY", "HOLD", "SELL"].map((t, i) =>
+      `<text class="nn-lbl" x="${(W - padX + 10)}" y="${(nodePos[cols - 1][i].y + 3).toFixed(1)}">${t}</text>`).join("");
     $("mind").innerHTML =
-      `<svg viewBox="0 0 ${MIND.W} ${MIND.H}" preserveAspectRatio="xMidYMid meet">
-         <g id="mindG">${eSvg}${nSvg}</g>
-       </svg>`;
-    MIND.edgeEls = MIND.edges.map((_, i) => document.getElementById("mE" + i));
-    MIND.nodeEls = MIND.nodes.map((_, i) => document.getElementById("mN" + i));
-    MIND.g = document.getElementById("mindG");
+      `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${edges}${nodes}${outLbl}</svg>`;
     MIND.built = true;
-    if (REDUCED) drawMind(0); else startMind();
-  }
-
-  function startMind() {
-    if (MIND.raf) return;
-    MIND.t0 = performance.now();
-    const loop = (t) => {
-      if (document.hidden) { MIND.raf = 0; return; }   // pause when tab hidden
-      drawMind(t - MIND.t0);
-      MIND.raf = requestAnimationFrame(loop);
-    };
-    MIND.raf = requestAnimationFrame(loop);
-  }
-
-  function drawMind(ms) {
-    const { W, H, R, nodes } = MIND;
-    const cx = W / 2, cy = H / 2;
-    MIND.rot += 0.0016 + 0.010 * MIND.activity;         // spin faster when busy
-    const cr = Math.cos(MIND.rot), sr = Math.sin(MIND.rot);
-    const tc = Math.cos(0.42), ts = Math.sin(0.42);      // fixed X tilt
-
-    const P = nodes.map((n) => {
-      let x = n.x * cr + n.z * sr;
-      let z = -n.x * sr + n.z * cr;
-      const y2 = n.y * tc - z * ts;
-      const z2 = n.y * ts + z * tc;
-      return { sx: cx + x * R, sy: cy + y2 * R, d: z2 };  // d: -1 back .. +1 front
-    });
-
-    const flow = ((ms * 0.022 * (0.3 + MIND.activity)) % 16).toFixed(1);
-    MIND.edgeEls.forEach((el, i) => {
-      const a = P[MIND.edges[i][0]], b = P[MIND.edges[i][1]];
-      const front = ((a.d + b.d) / 2) * 0.5 + 0.5;        // 0..1
-      el.setAttribute("x1", a.sx.toFixed(1)); el.setAttribute("y1", a.sy.toFixed(1));
-      el.setAttribute("x2", b.sx.toFixed(1)); el.setAttribute("y2", b.sy.toFixed(1));
-      el.setAttribute("stroke-opacity", ((0.12 + 0.30 * MIND.activity) * (0.4 + 0.6 * front)).toFixed(3));
-      el.setAttribute("stroke-dashoffset", -flow);
-    });
-
-    // draw order: back nodes first
-    const order = P.map((p, i) => i).sort((i, j) => P[i].d - P[j].d);
-    order.forEach((i) => {
-      const n = nodes[i], p = P[i], el = MIND.nodeEls[i];
-      const front = p.d * 0.5 + 0.5;
-      let charge;
-      if (n.kind === "sensory") charge = Math.max(0.3, MIND.perInput[n.slot] ?? 0.3);
-      else if (n.kind === "motor") charge = Math.max(0.3, MIND.motor[n.motor] ?? 0.3);
-      else charge = 0.34 + 0.45 * MIND.activity;
-      el.setAttribute("cx", p.sx.toFixed(1));
-      el.setAttribute("cy", p.sy.toFixed(1));
-      el.setAttribute("r", (2.0 + 2.6 * front + 1.8 * charge).toFixed(2));
-      el.style.setProperty("--n", (charge * (0.5 + 0.5 * front)).toFixed(2));
-      MIND.g.appendChild(el);   // reorder for depth
-    });
   }
 
   function mindActivity(s) {
@@ -335,14 +257,14 @@
     const dead = cfg.ma_deadband_pct || 0.15;
     let prox = 0;
     const perInput = {};
-    mkts.forEach((m, i) => {
+    mkts.forEach((m) => {
       let a = 0.10;
       if (m.fast_ma != null && m.slow_ma) {
         const sp = Math.abs((m.fast_ma - m.slow_ma) / m.slow_ma * 100);
         a = Math.max(0.10, 1 - sp / (dead * 2));
       }
       if (m.held) a = Math.max(a, 0.22);          // holding is a low, steady hum
-      perInput[i] = a;                            // keyed by slot (0..3)
+      perInput[m.symbol] = a;
       prox = Math.max(prox, a);
     });
 
@@ -361,36 +283,28 @@
   function renderMind(s) {
     if (!MIND.built) buildMind();
     const { act, perInput } = mindActivity(s);
-    MIND.activity = act;
-    MIND.perInput = perInput;
-    $("mind").style.setProperty("--activity", act.toFixed(3));
-    $("mind").style.setProperty("--pulse", (2.6 - 2.1 * act).toFixed(2));
+    const el = $("mind");
+    el.style.setProperty("--activity", act.toFixed(3));
+    el.style.setProperty("--pulse", (2.6 - 2.1 * act).toFixed(2)); // seconds; faster = busier
 
     const word = act < 0.15 ? "DORMANT" : act < 0.38 ? "IDLE" : act < 0.68 ? "ACTIVE" : "FIRING";
     $("mindState").textContent = word;
     $("mindPct").textContent = Math.round(act * 100) + "%";
     $("mindBar").style.width = Math.round(act * 100) + "%";
 
-    // motor-node charge from the current dominant intent across symbols
-    const nsym = (s.config?.equity_symbols?.length || 0) + (s.config?.crypto_symbols?.length || 0) || 4;
-    const tally = { buy: 0, hold: 0, sell: 0 };
-    (s.decisions || []).slice(0, nsym).forEach((d) => {
-      const k = (d.intent || "hold").toLowerCase();
-      if (k in tally) tally[k]++;
+    (s.markets || []).forEach((m, i) => {
+      const n = el.querySelector("#n-0-" + i);
+      if (n) n.style.setProperty("--n", (perInput[m.symbol] ?? 0.2).toFixed(2));
     });
-    MIND.motor = {
-      buy: 0.18 + Math.min(0.8, tally.buy * 0.42),
-      hold: 0.18 + Math.min(0.8, tally.hold * 0.28),
-      sell: 0.18 + Math.min(0.8, tally.sell * 0.42),
-    };
-
-    drawMind(performance.now() - (MIND.t0 || 0));  // guarantee a frame even if rAF is paused
-    if (!MIND.raf && !REDUCED) startMind();
+    // output nodes: light the one matching the current dominant intent
+    const tally = { buy: 0, hold: 0, sell: 0 };
+    (s.decisions || []).slice(0, s.config?.equity_symbols?.length + s.config?.crypto_symbols?.length || 4)
+      .forEach((d) => { tally[(d.intent || "hold").toLowerCase()] = (tally[(d.intent || "hold").toLowerCase()] || 0) + 1; });
+    ["buy", "hold", "sell"].forEach((k, i) => {
+      const n = el.querySelector("#n-3-" + i);
+      if (n) n.style.setProperty("--n", (0.2 + Math.min(0.8, tally[k] * 0.4)).toFixed(2));
+    });
   }
-
-  document.addEventListener("visibilitychange", () => {
-    if (!document.hidden && MIND.built && !MIND.raf && !REDUCED) startMind();
-  });
 
   // ---------- per-symbol market mini-charts ----------
   function miniChart(m) {
