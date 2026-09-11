@@ -50,7 +50,13 @@
       <span class="mind-meter"><span id="mindBar"></span></span>
       <span class="muted" id="mindPct"></span>
     </div>
-    <div id="mind" aria-hidden="true"></div>
+    <div class="mind-row">
+      <div class="mind-log">
+        <div class="mind-log-h">Decision Log <span class="hint">every loop &mdash; trade &amp; no-trade</span></div>
+        <div class="feed feed-auto" id="decisions"><div class="empty">waiting for the agent&hellip;</div></div>
+      </div>
+      <div id="mind" aria-hidden="true"></div>
+    </div>
   </section>
 
   <section class="panel">
@@ -77,17 +83,10 @@
     </section>
   </div>
 
-  <div class="grid2">
-    <section class="panel">
-      <div class="panel-h">Trades <span class="muted" id="tradeMeta"></span></div>
-      <div class="feed" id="trades"><div class="empty">no trades yet</div></div>
-    </section>
-
-    <section class="panel">
-      <div class="panel-h">Decision Log <span class="hint">every loop &mdash; trade &amp; no-trade</span></div>
-      <div class="feed" id="decisions"><div class="empty">waiting for the agent&hellip;</div></div>
-    </section>
-  </div>
+  <section class="panel">
+    <div class="panel-h">Trades <span class="muted" id="tradeMeta"></span></div>
+    <div class="feed" id="trades"><div class="empty">no trades yet</div></div>
+  </section>
 
   <footer id="footer"></footer>
 

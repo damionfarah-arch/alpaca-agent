@@ -652,6 +652,22 @@
         ${mas}
       </div>`;
     }).join("");
+    ensureAutoScroll(box);
+  }
+
+  // ---------- continuous vertical auto-scroll (decision log) ----------
+  function ensureAutoScroll(el) {
+    if (!el || el.dataset.autoScroll) return;
+    el.dataset.autoScroll = "1";
+    let paused = false;
+    el.addEventListener("mouseenter", () => { paused = true; });
+    el.addEventListener("mouseleave", () => { paused = false; });
+    setInterval(() => {
+      if (paused) return;
+      const max = el.scrollHeight - el.clientHeight;
+      if (max <= 1) return;
+      el.scrollTop = el.scrollTop + 0.6 >= max ? 0 : el.scrollTop + 0.6;
+    }, 45);
   }
 
   function renderFooter(cfg) {
