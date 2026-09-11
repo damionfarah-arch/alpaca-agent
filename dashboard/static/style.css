@@ -296,8 +296,7 @@ td { font-weight: 400; }
   width: 34%;
   min-width: 260px;
   max-width: 420px;
-  aspect-ratio: 1000 / 148;
-  height: auto;
+  height: 148px;
   display: block;
   overflow: visible;
 }
