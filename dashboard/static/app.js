@@ -303,6 +303,21 @@
     MIND.pulses.push({ x, y, start: ms, dur: 480 });
   }
 
+  // charge hands off along the wire: a white node that fires goes green,
+  // a green node that receives lights up white
+  function setNodeSpark(i, isSpark) {
+    const n = MIND.nodes[i];
+    if (n.spark === isSpark) return;
+    n.spark = isSpark;
+    const el = MIND.nodeEls[i];
+    el.classList.remove(isSpark ? "brain-dot" : "brain-spark");
+    el.classList.add(isSpark ? "brain-spark" : "brain-dot");
+    if (isSpark) {
+      el.style.setProperty("--dd", (2.3 + Math.random() * 2.6).toFixed(2) + "s");
+      el.style.setProperty("--d", (Math.random() * 4).toFixed(2) + "s");
+    }
+  }
+
   function startMind() {
     if (MIND.raf) return;
     MIND.t0 = performance.now();
@@ -346,6 +361,7 @@
         MIND.nodeFlash[a] = ms + FLASH_MS;        // brighten the firing node
         MIND.edgeFlash[eIdx] = ms + dur;          // light up the wire while current flows
         spawnPulse(P[a].sx, P[a].sy, ms);         // ring pulse where it departs
+        setNodeSpark(a, false);                   // fired -> spends its charge, goes green
       }
       MIND.nextSpawn = ms + avgGap * (0.55 + Math.random() * 0.9);
     }
@@ -355,6 +371,7 @@
       if (ms - e.start >= e.dur) {
         MIND.nodeFlash[e.b] = ms + FLASH_MS;
         spawnPulse(P[e.b].sx, P[e.b].sy, ms);     // ring pulse where it arrives
+        setNodeSpark(e.b, true);                  // received -> lights up white
         return false;
       }
       return true;
