@@ -219,7 +219,7 @@
     W: 340, H: 210, R: 82,
     nodes: [], edges: [], nodeEls: [], edgeEls: [],
     nodeFlash: [], edgeFlash: [], electrons: [], electronEls: [],
-    poolSize: 28, nextSpawn: 0,
+    poolSize: 42, nextSpawn: 0,
     activity: 0.2,
   };
   const FLASH_MS = 380;   // node brighten decay window (fire + receipt)
@@ -324,8 +324,8 @@
     if (MIND.edges.length && ms >= MIND.nextSpawn) {
       const avgGap = 1900 - 1650 * MIND.activity;               // idle ~1.9s apart, busy ~0.25s
       let bursts = 1;
-      if (MIND.activity > 0.3) bursts = 2;
-      if (MIND.activity > 0.6) bursts = Math.random() < 0.5 ? 4 : 3;
+      if (MIND.activity > 0.3) bursts = 3;
+      if (MIND.activity > 0.6) bursts = Math.random() < 0.5 ? 6 : 5;
       for (let k = 0; k < bursts; k++) {
         if (MIND.electrons.length >= MIND.poolSize) break;
         const eIdx = Math.floor(Math.random() * MIND.edges.length);

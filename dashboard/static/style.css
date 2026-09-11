@@ -304,19 +304,19 @@ td { font-weight: 400; }
 /* translucent, depth-cued -- JS (drawMind) sets cx/cy/r/opacity/--front every
    frame as the cloud rotates, so CSS mostly supplies colour + glow + twinkle */
 .brain-edge {
-  stroke: var(--blue);
+  stroke: var(--grn);
   stroke-width: 0.6;
   stroke-dasharray: 2 6;
   mix-blend-mode: screen;
 }
 .brain-dot {
-  fill: var(--blue);
-  filter: drop-shadow(0 0 1.5px var(--blue));
+  fill: var(--grn);
+  filter: drop-shadow(0 0 1.5px var(--grn));
   mix-blend-mode: screen;
 }
 .brain-spark {
-  fill: #eafcff;
-  filter: drop-shadow(0 0 3px var(--blue)) drop-shadow(0 0 8px var(--blue));
+  fill: #eafff6;
+  filter: drop-shadow(0 0 3px var(--grn)) drop-shadow(0 0 8px var(--grn));
   mix-blend-mode: screen;
   animation: brain-twinkle var(--dd, 3s) ease-in-out infinite;
   animation-delay: var(--d, 0s);
@@ -327,11 +327,9 @@ td { font-weight: 400; }
 }
 
 .electron {
-  fill: #eafcff;
-  filter: drop-shadow(0 0 2px #eafcff) drop-shadow(0 0 6px var(--blue));
+  fill: #eafff6;
+  filter: drop-shadow(0 0 2px #eafff6) drop-shadow(0 0 6px var(--grn));
 }
-
-body[data-pnl="neg"] #mind svg { filter: hue-rotate(150deg) saturate(1.5); }
 
 @media (prefers-reduced-motion: reduce) {
   .brain-spark { animation: none; opacity: calc(0.55 * var(--front, 0.5) * var(--actmul, 0.5)); }
