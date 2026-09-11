@@ -212,36 +212,63 @@
       (baseline != null ? ` · baseline ${usd(baseline)}` : "");
   }
 
-  // ---------- neural-activity graphic ----------
-  const MIND = { built: false, layers: [4, 7, 7, 3] };
+  // ---------- neural-activity graphic: a glowing "cybernetic brain" ----------
+  const MIND = { built: false };
 
   function buildMind() {
-    const W = 1000, H = 148, padX = 46, padY = 16;
-    const cols = MIND.layers.length;
-    const nodePos = MIND.layers.map((n, li) => {
-      const cx = padX + (li / (cols - 1)) * (W - 2 * padX);
-      return Array.from({ length: n }, (_, i) => ({
-        x: cx,
-        y: padY + (n === 1 ? (H - 2 * padY) / 2 : (i / (n - 1)) * (H - 2 * padY)),
-      }));
-    });
-    let edges = "", nodes = "", d = 0;
-    for (let li = 0; li < cols - 1; li++) {
-      nodePos[li].forEach((a, ai) => {
-        nodePos[li + 1].forEach((b, bi) => {
-          d = (d + 0.37) % 3;
-          edges += `<line class="nn-edge" x1="${a.x}" y1="${a.y.toFixed(1)}" x2="${b.x}" y2="${b.y.toFixed(1)}" style="--d:${d.toFixed(2)}s"/>`;
-        });
-      });
+    const W = 400, H = 250;
+    // overlapping lobes approximating a side-profile brain mass (main mass,
+    // frontal + temporal bumps, cerebellum, brainstem-ish nub)
+    const lobes = [
+      { cx: 190, cy: 118, r: 86 }, { cx: 118, cy: 100, r: 54 },
+      { cx: 258, cy: 96, r: 52 }, { cx: 292, cy: 162, r: 32 },
+      { cx: 182, cy: 172, r: 56 }, { cx: 228, cy: 58, r: 36 },
+      { cx: 130, cy: 150, r: 40 },
+    ];
+    const inBrain = (x, y) => lobes.some((l) => (x - l.cx) ** 2 + (y - l.cy) ** 2 <= l.r * l.r * 0.9);
+
+    const N = 90;
+    const pts = [];
+    for (let tries = 0; pts.length < N && tries < 6000; tries++) {
+      const x = 14 + Math.random() * (W - 28), y = 14 + Math.random() * (H - 28);
+      if (inBrain(x, y)) pts.push({ x, y });
     }
-    nodePos.forEach((layer, li) => layer.forEach((p, i) => {
-      const cls = li === 0 ? "nn-node nn-in" : li === cols - 1 ? "nn-node nn-out" : "nn-node";
-      nodes += `<circle class="${cls} nn-pulse" id="n-${li}-${i}" cx="${p.x}" cy="${p.y.toFixed(1)}" r="4" style="--n:0.3;--d:${(i * 0.19).toFixed(2)}s"/>`;
-    }));
-    const outLbl = ["BUY", "HOLD", "SELL"].map((t, i) =>
-      `<text class="nn-lbl" x="${(W - padX + 10)}" y="${(nodePos[cols - 1][i].y + 3).toFixed(1)}">${t}</text>`).join("");
-    $("mind").innerHTML =
-      `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${edges}${nodes}${outLbl}</svg>`;
+
+    const seen = new Set(), edges = [];
+    pts.forEach((a, i) => {
+      pts.map((b, j) => ({ j, d: (a.x - b.x) ** 2 + (a.y - b.y) ** 2 }))
+        .filter((o) => o.j !== i).sort((p, q) => p.d - q.d).slice(0, 2)
+        .forEach((o) => {
+          const key = i < o.j ? `${i}-${o.j}` : `${o.j}-${i}`;
+          if (!seen.has(key)) { seen.add(key); edges.push([i, o.j]); }
+        });
+    });
+
+    const glowSvg = lobes.map((l) => `<circle cx="${l.cx}" cy="${l.cy}" r="${l.r}"/>`).join("");
+    const edgeSvg = edges.map(([i, j], k) =>
+      `<line class="brain-edge" x1="${pts[i].x.toFixed(1)}" y1="${pts[i].y.toFixed(1)}" x2="${pts[j].x.toFixed(1)}" y2="${pts[j].y.toFixed(1)}" style="--d:${(k * 0.13 % 3).toFixed(2)}s"/>`
+    ).join("");
+    const sparkSet = new Set(
+      pts.map((_, i) => i).sort(() => Math.random() - 0.5).slice(0, Math.round(N * 0.2))
+    );
+    const dotSvg = pts.map((p, i) => {
+      const spark = sparkSet.has(i);
+      return `<circle class="${spark ? "brain-spark" : "brain-dot"}" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${spark ? 1.5 : 0.8}" style="--d:${(Math.random() * 4).toFixed(2)}s;--dd:${(2.2 + Math.random() * 2.4).toFixed(2)}s"/>`;
+    }).join("");
+
+    $("mind").innerHTML = `
+      <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
+        <defs>
+          <filter id="brainBlur" x="-40%" y="-40%" width="180%" height="180%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="9" result="b"/>
+            <feColorMatrix in="b" type="matrix"
+              values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 20 -9"/>
+          </filter>
+        </defs>
+        <g class="brain-glow" filter="url(#brainBlur)">${glowSvg}</g>
+        <g class="brain-mesh">${edgeSvg}</g>
+        <g class="brain-dots">${dotSvg}</g>
+      </svg>`;
     MIND.built = true;
   }
 
@@ -282,28 +309,15 @@
 
   function renderMind(s) {
     if (!MIND.built) buildMind();
-    const { act, perInput } = mindActivity(s);
+    const { act } = mindActivity(s);
     const el = $("mind");
     el.style.setProperty("--activity", act.toFixed(3));
-    el.style.setProperty("--pulse", (2.6 - 2.1 * act).toFixed(2)); // seconds; faster = busier
+    el.style.setProperty("--pulse", (3.2 - 2.3 * act).toFixed(2)); // seconds; faster = busier
 
     const word = act < 0.15 ? "DORMANT" : act < 0.38 ? "IDLE" : act < 0.68 ? "ACTIVE" : "FIRING";
     $("mindState").textContent = word;
     $("mindPct").textContent = Math.round(act * 100) + "%";
     $("mindBar").style.width = Math.round(act * 100) + "%";
-
-    (s.markets || []).forEach((m, i) => {
-      const n = el.querySelector("#n-0-" + i);
-      if (n) n.style.setProperty("--n", (perInput[m.symbol] ?? 0.2).toFixed(2));
-    });
-    // output nodes: light the one matching the current dominant intent
-    const tally = { buy: 0, hold: 0, sell: 0 };
-    (s.decisions || []).slice(0, s.config?.equity_symbols?.length + s.config?.crypto_symbols?.length || 4)
-      .forEach((d) => { tally[(d.intent || "hold").toLowerCase()] = (tally[(d.intent || "hold").toLowerCase()] || 0) + 1; });
-    ["buy", "hold", "sell"].forEach((k, i) => {
-      const n = el.querySelector("#n-3-" + i);
-      if (n) n.style.setProperty("--n", (0.2 + Math.min(0.8, tally[k] * 0.4)).toFixed(2));
-    });
   }
 
   // ---------- per-symbol market mini-charts ----------

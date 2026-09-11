@@ -293,43 +293,51 @@ td { font-weight: 400; }
 }
 #mind { padding: 4px 6px 8px; display: flex; justify-content: center; }
 #mind svg {
-  width: 34%;
-  min-width: 260px;
-  max-width: 420px;
-  height: 148px;
+  width: 40%;
+  min-width: 240px;
+  max-width: 340px;
+  height: 210px;
   display: block;
   overflow: visible;
 }
 
-.nn-edge {
-  stroke: var(--grn);
-  stroke-opacity: calc(0.30 + 0.55 * var(--activity, 0.2));
-  stroke-width: 1.4;
-  stroke-dasharray: 3 6;
-  filter: drop-shadow(0 0 2px rgba(38,255,202,0.5));
-  animation: nn-flow calc(var(--pulse, 2.2) * 1s) linear infinite;
+/* soft glowing mass behind the mesh -- gives the brain its silhouette */
+.brain-glow {
+  mix-blend-mode: screen;
+  opacity: calc(0.10 + 0.16 * var(--activity, 0.2));
+  transition: opacity .6s ease;
+}
+.brain-glow circle { fill: var(--blue); }
+
+/* connective mesh */
+.brain-mesh { opacity: calc(0.4 + 0.6 * var(--activity, 0.2)); transition: opacity .6s ease; }
+.brain-edge {
+  stroke: var(--blue);
+  stroke-width: 0.55;
+  stroke-opacity: 0.75;
+  filter: drop-shadow(0 0 1.5px var(--blue));
+  animation: brain-shimmer calc(var(--pulse, 2.6) * 1s) ease-in-out infinite;
   animation-delay: var(--d, 0s);
 }
-@keyframes nn-flow { to { stroke-dashoffset: -18; } }
+@keyframes brain-shimmer { 0%, 100% { opacity: .3; } 50% { opacity: 1; } }
 
-.nn-node {
-  fill: #0d1a16;
-  stroke: var(--grn);
-  stroke-width: 1.6;
-  stroke-opacity: calc(0.6 + 0.4 * var(--n, 0.3));
-  filter: drop-shadow(0 0 calc(2px + 10px * var(--n, 0.3)) rgba(38,255,202, calc(0.8 * var(--n, 0.3))));
+/* faint fill points */
+.brain-dots { opacity: calc(0.6 + 0.4 * var(--activity, 0.2)); transition: opacity .6s ease; }
+.brain-dot { fill: var(--blue); opacity: 0.85; filter: drop-shadow(0 0 1.5px var(--blue)); }
+
+/* bright twinkling highlights */
+.brain-spark {
+  fill: #eafcff;
+  filter: drop-shadow(0 0 3px var(--blue)) drop-shadow(0 0 8px var(--blue));
+  animation: brain-twinkle var(--dd, 3s) ease-in-out infinite;
+  animation-delay: var(--d, 0s);
 }
-.nn-in  { stroke: var(--blue); filter: drop-shadow(0 0 calc(2px + 10px * var(--n,0.3))  rgba(77,210,255, calc(0.8 * var(--n,0.3)))); }
-.nn-out { stroke: var(--amber); filter: drop-shadow(0 0 calc(2px + 10px * var(--n,0.3)) rgba(255,204,77, calc(0.8 * var(--n,0.3)))); }
-.nn-pulse { animation: nn-breathe calc(var(--pulse, 2.2) * 1s) ease-in-out infinite; animation-delay: var(--d, 0s); }
-@keyframes nn-breathe {
-  0%, 100% { r: 3.4px; }
-  50%      { r: calc(3.4px + 3px * var(--activity, 0.3)); }
+@keyframes brain-twinkle {
+  0%, 100% { opacity: .18; r: 0.9px; }
+  50%      { opacity: 1;   r: 2px; }
 }
-.nn-lbl {
-  fill: var(--ink-faint); font-family: var(--mono); font-size: 9px;
-  letter-spacing: 1px;
-}
+
+body[data-pnl="neg"] #mind svg { filter: hue-rotate(150deg) saturate(1.5); }
 
 body[data-pnl="neg"] .nn-edge,
 body[data-pnl="neg"] .nn-node { stroke: var(--red); }
