@@ -219,8 +219,8 @@
     W: 340, H: 210, R: 82,
     nodes: [], edges: [], nodeEls: [], edgeEls: [],
     nodeFlash: [], edgeFlash: [], electrons: [], electronEls: [],
-    poolSize: 84, nextSpawn: 0,
-    pulses: [], pulseEls: [], pulsePoolSize: 40,
+    poolSize: 168, nextSpawn: 0,
+    pulses: [], pulseEls: [], pulsePoolSize: 80,
     activity: 0.2,
   };
   const FLASH_MS = 380;   // node brighten decay window (fire + receipt)
@@ -237,7 +237,7 @@
   }
 
   function buildMind() {
-    const N = 96;
+    const N = 192;
     const raw = fibSphere(N);
     // deform the unit sphere into an organic, slightly lopsided brain-ish blob
     MIND.nodes = raw.map((p) => ({
@@ -334,9 +334,9 @@
     // ---- fire new electrons at a rate that reflects activity ----
     if (MIND.edges.length && ms >= MIND.nextSpawn) {
       const avgGap = 950 - 825 * MIND.activity;                 // idle ~0.95s apart, busy ~0.125s
-      let bursts = 2;
-      if (MIND.activity > 0.3) bursts = 6;
-      if (MIND.activity > 0.6) bursts = Math.random() < 0.5 ? 12 : 10;
+      let bursts = 4;
+      if (MIND.activity > 0.3) bursts = 12;
+      if (MIND.activity > 0.6) bursts = Math.random() < 0.5 ? 24 : 20;
       for (let k = 0; k < bursts; k++) {
         if (MIND.electrons.length >= MIND.poolSize) break;
         const eIdx = Math.floor(Math.random() * MIND.edges.length);
