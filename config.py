@@ -12,7 +12,14 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-load_dotenv()  # no-op if .env is absent (e.g. on the VPS using real env vars)
+# Load .env from the current working directory explicitly -- NOT the default
+# python-dotenv search, which walks up from *this file's own location*. That
+# default breaks the moment code is shared across multiple instances (e.g.
+# Agent A/B running the same codebase from different WorkingDirectory's via
+# PYTHONPATH): every instance would silently load whichever .env sits next to
+# config.py instead of its own. No-op if there's no .env in the CWD (e.g. the
+# VPS using real exported env vars only).
+load_dotenv(dotenv_path=Path.cwd() / ".env")
 
 
 # --------------------------------------------------------------------------- #
