@@ -37,15 +37,29 @@
       box.innerHTML = `<div class="empty">no agents configured -- set COMPARE_A_NAME/COMPARE_A_DB (and _B/_C) in .env</div>`;
       return;
     }
-    const ranked = agents.map((a, i) => ({ ...a, _color: COLORS[i % COLORS.length] }))
-      .filter((a) => a.available && !a.no_data)
-      .sort((a, b) => (b.all_time_pl_pct ?? -Infinity) - (a.all_time_pl_pct ?? -Infinity));
-    const unavailable = agents.filter((a) => !a.available || a.no_data);
-
+    // fixed left-to-right position (A, B, C as configured) -- rank is shown
+    // as a badge but never reorders the cards, so directly-comparable agents
+    // (e.g. A & B) stay side by side with C to the right, whoever's winning.
+    const colored = agents.map((a, i) => ({ ...a, _color: COLORS[i % COLORS.length] }));
     const medal = ["#1", "#2", "#3", "#4"];
-    box.innerHTML = `<div class="board-grid">` + ranked.map((a, i) => `
+    const rankOf = new Map(
+      colored.filter((a) => a.available && !a.no_data)
+        .slice().sort((a, b) => (b.all_time_pl_pct ?? -Infinity) - (a.all_time_pl_pct ?? -Infinity))
+        .map((a, i) => [a.name, medal[i] || "#" + (i + 1)])
+    );
+
+    box.innerHTML = `<div class="board-grid">` + colored.map((a) => {
+      if (!a.available || a.no_data) {
+        return `
+      <div class="board-card board-card-off">
+        <div class="board-name">${esc(a.name)}</div>
+        <div class="board-strategy">${a.no_data ? "no data yet" : esc(a.error || "unavailable")}</div>
+        ${a.url ? `<a class="board-link" href="${esc(a.url)}" target="_blank" rel="noopener">Open full dashboard &rarr;</a>` : ""}
+      </div>`;
+      }
+      return `
       <div class="board-card" style="--ac:${a._color}">
-        <div class="board-rank">${medal[i] || "#" + (i + 1)}</div>
+        <div class="board-rank">${rankOf.get(a.name) || ""}</div>
         <div class="board-name">${esc(a.name)}</div>
         <div class="board-strategy">${esc(a.strategy || "—")}</div>
         <div class="board-equity">${usd(a.equity)}</div>
@@ -63,14 +77,8 @@
         </div>
         <div class="board-row"><span>Last loop</span><span>${ago(a.last_loop_finished)}</span></div>
         ${a.url ? `<a class="board-link" href="${esc(a.url)}" target="_blank" rel="noopener">Open full dashboard &rarr;</a>` : ""}
-      </div>
-    `).join("") + unavailable.map((a) => `
-      <div class="board-card board-card-off">
-        <div class="board-name">${esc(a.name)}</div>
-        <div class="board-strategy">${a.no_data ? "no data yet" : esc(a.error || "unavailable")}</div>
-        ${a.url ? `<a class="board-link" href="${esc(a.url)}" target="_blank" rel="noopener">Open full dashboard &rarr;</a>` : ""}
-      </div>
-    `).join("") + `</div>`;
+      </div>`;
+    }).join("") + `</div>`;
   }
 
   function renderChart(agents) {
