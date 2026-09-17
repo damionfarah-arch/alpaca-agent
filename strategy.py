@@ -148,7 +148,37 @@ class MACrossover:
         )
 
 
+class BuyAndHold:
+    """No timing at all: buy on the first bar and never sell. Exists so a
+    'just hold a basket' comparison can run through the exact same agent /
+    dashboard / decision-log machinery as the timed strategies, instead of
+    being a one-off script -- makes it directly comparable, not just
+    theoretically comparable."""
+
+    name = "buy_and_hold"
+
+    def describe(self) -> str:
+        return "Buy & hold (no timing -- buys once, never sells)"
+
+    def evaluate(self, bars: list[Bar]) -> StrategySignal:
+        if not bars:
+            return StrategySignal(HOLD, "no price data yet.", None)
+        price = bars[-1].close
+        return StrategySignal(
+            action=BUY,
+            reason=(
+                f"Buy & hold: always target long, no exit rule. "
+                f"Last price {price:,.2f}."
+            ),
+            price=price,
+        )
+
+
 def get_strategy(config: Config):
     if config.strategy == "ma_crossover":
         return MACrossover(config.ma_fast, config.ma_slow, config.ma_min_spread_pct)
-    raise ValueError(f"unknown STRATEGY {config.strategy!r} (supported: ma_crossover)")
+    if config.strategy == "buy_and_hold":
+        return BuyAndHold()
+    raise ValueError(
+        f"unknown STRATEGY {config.strategy!r} (supported: ma_crossover, buy_and_hold)"
+    )

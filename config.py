@@ -133,6 +133,9 @@ class Config:
     compare_c_name: str
     compare_c_db: str
     compare_c_url: str
+    compare_d_name: str
+    compare_d_db: str
+    compare_d_url: str
 
     # --- misc ---
     log_level: str
@@ -259,6 +262,9 @@ def _load() -> Config:
         compare_c_name=_str("COMPARE_C_NAME", ""),
         compare_c_db=_str("COMPARE_C_DB", ""),
         compare_c_url=_str("COMPARE_C_URL", ""),
+        compare_d_name=_str("COMPARE_D_NAME", ""),
+        compare_d_db=_str("COMPARE_D_DB", ""),
+        compare_d_url=_str("COMPARE_D_URL", ""),
         log_level=_str("LOG_LEVEL", "INFO").upper(),
     )
     return cfg

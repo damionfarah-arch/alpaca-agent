@@ -240,6 +240,7 @@ def _build_compare_state() -> dict:
         (CONFIG.compare_a_name, CONFIG.compare_a_db, CONFIG.compare_a_url),
         (CONFIG.compare_b_name, CONFIG.compare_b_db, CONFIG.compare_b_url),
         (CONFIG.compare_c_name, CONFIG.compare_c_db, CONFIG.compare_c_url),
+        (CONFIG.compare_d_name, CONFIG.compare_d_db, CONFIG.compare_d_url),
     ]
     agents = [
         _read_agent_summary(name, path, url) for name, path, url in slots if name and path
