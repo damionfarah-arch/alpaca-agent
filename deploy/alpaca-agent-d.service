@@ -1,0 +1,37 @@
+[Unit]
+Description=Alpaca trading agent loop -- Agent D (thematic buy & hold)
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=alpaca
+Group=alpaca
+WorkingDirectory=/home/alpaca/alpaca-agent-d
+Environment=PYTHONPATH=/home/alpaca/alpaca-agent
+ExecStart=/home/alpaca/alpaca-agent/.venv/bin/python -m agent
+
+Restart=always
+RestartSec=10
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=alpaca-agent-d
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/alpaca/alpaca-agent-d/data
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictNamespaces=true
+LockPersonality=true
+MemoryDenyWriteExecute=false
+
+[Install]
+WantedBy=multi-user.target
