@@ -151,6 +151,16 @@ body::before {
   text-shadow: 0 0 12px rgba(38,255,202,0.4);
   white-space: nowrap;
 }
+.compare-link {
+  color: var(--ink-dim);
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-decoration: none;
+  border: 1px solid var(--panel-b);
+  padding: 3px 9px;
+  white-space: nowrap;
+}
+.compare-link:hover { color: var(--grn); border-color: var(--grn); }
 .brand .sub {
   color: var(--ink-faint);
   font-weight: 400;
@@ -478,3 +488,50 @@ footer {
   .stats { grid-template-columns: repeat(2, 1fr); }
   .grid2 { grid-template-columns: 1fr; }
 }
+
+/* ---------------- compare page: leaderboard ---------------- */
+.board-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+  padding: 14px;
+}
+.board-card {
+  position: relative;
+  padding: 14px 16px;
+  background: var(--panel);
+  border: 1px solid var(--panel-b);
+  border-left: 3px solid var(--ac, var(--panel-b));
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+}
+.board-card-off { opacity: 0.55; border-left-color: var(--ink-faint); }
+.board-rank {
+  position: absolute; top: 10px; right: 14px;
+  font-family: var(--num); font-size: 18px; font-weight: 300; color: var(--ac, var(--ink-faint));
+}
+.board-name { font-size: 13px; font-weight: 600; color: var(--ink); margin-bottom: 2px; }
+.board-strategy { font-size: 10.5px; color: var(--ink-faint); margin-bottom: 10px; }
+.board-equity {
+  font-family: var(--num); font-weight: 300; font-size: 22px; color: var(--ink);
+  margin-bottom: 8px; font-feature-settings: "tnum" 1;
+}
+.board-row {
+  display: flex; justify-content: space-between; gap: 10px;
+  font-size: 11px; color: var(--ink-dim); padding: 3px 0;
+  border-top: 1px solid rgba(38,255,202,0.06);
+  font-family: var(--num); font-feature-settings: "tnum" 1;
+}
+.board-row span:first-child { font-family: var(--mono); color: var(--ink-faint); }
+.board-row i { font-style: normal; color: var(--ink-faint); }
+.board-link {
+  display: block; margin-top: 10px; text-align: center;
+  padding: 6px 8px; font-size: 10.5px; letter-spacing: 1px; text-transform: uppercase;
+  color: var(--grn); border: 1px solid var(--panel-b); text-decoration: none;
+}
+.board-link:hover { border-color: var(--grn); background: rgba(38,255,202,0.06); }
+
+.cmp-line { fill: none; stroke: var(--c); stroke-width: 1.7;
+            filter: drop-shadow(0 0 3px var(--c)); opacity: 0.9; }
+.cmp-legend { display: flex; gap: 16px; flex-wrap: wrap; padding: 0 14px 12px; }
+.cmp-leg-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--ink-dim); }
+.cmp-leg-item i { width: 10px; height: 10px; display: inline-block; border-radius: 2px; }

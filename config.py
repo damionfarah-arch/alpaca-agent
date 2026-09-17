@@ -122,6 +122,18 @@ class Config:
     dashboard_user: str
     dashboard_password: str
 
+    # --- multi-agent comparison view (/compare) -- each slot optional,
+    # blank name or db path means "not configured", skip it ---
+    compare_a_name: str
+    compare_a_db: str
+    compare_a_url: str
+    compare_b_name: str
+    compare_b_db: str
+    compare_b_url: str
+    compare_c_name: str
+    compare_c_db: str
+    compare_c_url: str
+
     # --- misc ---
     log_level: str
     base_currency: str = "USD"
@@ -238,6 +250,15 @@ def _load() -> Config:
         dashboard_poll_seconds=_int("DASHBOARD_POLL_SECONDS", 30),
         dashboard_user=_str("DASHBOARD_USER", "admin"),
         dashboard_password=_str("DASHBOARD_PASSWORD", ""),
+        compare_a_name=_str("COMPARE_A_NAME", ""),
+        compare_a_db=_str("COMPARE_A_DB", ""),
+        compare_a_url=_str("COMPARE_A_URL", ""),
+        compare_b_name=_str("COMPARE_B_NAME", ""),
+        compare_b_db=_str("COMPARE_B_DB", ""),
+        compare_b_url=_str("COMPARE_B_URL", ""),
+        compare_c_name=_str("COMPARE_C_NAME", ""),
+        compare_c_db=_str("COMPARE_C_DB", ""),
+        compare_c_url=_str("COMPARE_C_URL", ""),
         log_level=_str("LOG_LEVEL", "INFO").upper(),
     )
     return cfg

@@ -181,6 +181,72 @@ def _int(v, default: int) -> int:
         return default
 
 
+def _read_agent_summary(name: str, db_path: str, url: str) -> dict:
+    """Compact cross-agent summary for /compare -- reads another agent's DB
+    read-only. Tolerant of that DB being temporarily missing/locked."""
+    try:
+        conn = db.connect_readonly(db_path)
+    except sqlite3.OperationalError:
+        return {"name": name, "url": url, "available": False,
+                "error": f"database not found at {db_path}"}
+
+    try:
+        meta = db.get_all_meta(conn)
+        account = db.latest_account(conn)
+        source = meta.get("account_source") or "shadow"
+        first = db.first_account(conn, source) or db.first_account(conn)
+        curve = db.equity_curve(conn, 1500)
+        cnt = db.counts(conn)
+    except sqlite3.OperationalError as exc:
+        return {"name": name, "url": url, "available": False, "error": str(exc)}
+    finally:
+        conn.close()
+
+    if not account:
+        return {"name": name, "url": url, "available": True, "no_data": True}
+
+    equity = account["equity"]
+    baseline = first["equity"] if first else None
+    all_time_pl = (equity - baseline) if baseline else None
+    all_time_pl_pct = (
+        (all_time_pl / baseline * 100.0) if (all_time_pl is not None and baseline) else None
+    )
+
+    return {
+        "name": name,
+        "url": url,
+        "available": True,
+        "no_data": False,
+        "agent_state": meta.get("agent_state", "unknown"),
+        "strategy": meta.get("strategy", ""),
+        "execution_mode": meta.get("execution_mode", ""),
+        "alpaca_env": meta.get("alpaca_env", ""),
+        "last_loop_finished": meta.get("last_loop_finished"),
+        "equity": equity,
+        "cash": account["cash"],
+        "day_pl": account["day_pl"],
+        "day_pl_pct": account["day_pl_pct"],
+        "all_time_pl": all_time_pl,
+        "all_time_pl_pct": all_time_pl_pct,
+        "realized_pl": account["realized_pl"],
+        "baseline_equity": baseline,
+        "counts": cnt,
+        "curve": [{"ts": r["ts"], "equity": r["equity"]} for r in curve],
+    }
+
+
+def _build_compare_state() -> dict:
+    slots = [
+        (CONFIG.compare_a_name, CONFIG.compare_a_db, CONFIG.compare_a_url),
+        (CONFIG.compare_b_name, CONFIG.compare_b_db, CONFIG.compare_b_url),
+        (CONFIG.compare_c_name, CONFIG.compare_c_db, CONFIG.compare_c_url),
+    ]
+    agents = [
+        _read_agent_summary(name, path, url) for name, path, url in slots if name and path
+    ]
+    return {"generated_at": _utcnow_iso(), "agents": agents}
+
+
 def _config_block() -> dict:
     return {
         "poll_seconds": CONFIG.dashboard_poll_seconds,
@@ -220,6 +286,16 @@ def create_app() -> Flask:
     @require_auth
     def api_state():
         return jsonify(_build_state())
+
+    @app.get("/compare")
+    @require_auth
+    def compare_page():
+        return render_template("compare.html", poll_seconds=CONFIG.dashboard_poll_seconds)
+
+    @app.get("/api/compare")
+    @require_auth
+    def api_compare():
+        return jsonify(_build_compare_state())
 
     @app.get("/healthz")
     def healthz():
