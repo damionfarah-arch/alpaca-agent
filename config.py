@@ -89,6 +89,8 @@ class Config:
     ma_fast: int
     ma_slow: int
     ma_min_spread_pct: float   # deadband: |fast-slow|/slow below this = neutral
+    stop_loss_pct: float       # force-exit if a position is down this % (0 = off)
+    take_profit_pct: float     # force-exit if a position is up this % (0 = off)
     bar_timeframe: str
     bar_lookback: int
 
@@ -143,11 +145,17 @@ class Config:
         shadow = (
             f" shadow_cash=${self.shadow_starting_cash:g}" if self.is_shadow else ""
         )
+        exits = []
+        if self.stop_loss_pct > 0:
+            exits.append(f"stop=-{self.stop_loss_pct:g}%")
+        if self.take_profit_pct > 0:
+            exits.append(f"take=+{self.take_profit_pct:g}%")
+        exit_str = f" exits[{','.join(exits)}]" if exits else ""
         return (
             f"endpoint={self.alpaca_env} execution={self.execution_mode}{shadow} "
             f"equities={self.equity_symbols or '-'} crypto={self.crypto_symbols or '-'} "
             f"strategy={self.strategy}(fast={self.ma_fast},slow={self.ma_slow},"
-            f"tf={self.bar_timeframe}) "
+            f"tf={self.bar_timeframe}){exit_str} "
             f"caps: trade<=${self.risk.max_position_notional_usd:g} "
             f"total<=${self.risk.max_total_allocation_usd:g} "
             f"dayloss<=${self.risk.max_daily_loss_usd:g}"
@@ -208,6 +216,8 @@ def _load() -> Config:
         ma_fast=ma_fast,
         ma_slow=ma_slow,
         ma_min_spread_pct=_float("MA_MIN_SPREAD_PCT", 0.15),
+        stop_loss_pct=_float("STOP_LOSS_PCT", 0.0),
+        take_profit_pct=_float("TAKE_PROFIT_PCT", 0.0),
         bar_timeframe=_str("BAR_TIMEFRAME", "1H"),
         bar_lookback=_int("BAR_LOOKBACK", 200),
         loop_interval_seconds=_int("LOOP_INTERVAL_SECONDS", 300),

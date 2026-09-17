@@ -24,9 +24,9 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from config import CONFIG
-from engine import plan_trade
+from engine import check_stop_take, plan_trade
 from models import Bar, Side
-from strategy import MACrossover
+from strategy import SELL, MACrossover, StrategySignal
 
 CACHE = Path("data/bars_cache")
 _SPARK = "▁▂▃▄▅▆▇█"
@@ -184,6 +184,8 @@ def run_backtest(
     ma_fast: int,
     ma_slow: int,
     deadband: float,
+    stop_loss_pct: float = 0.0,
+    take_profit_pct: float = 0.0,
     starting_cash: float,
     per_trade_usd: float,
     max_alloc_usd: float,
@@ -237,6 +239,16 @@ def run_backtest(
             hist = series[s][max(0, ptr[s] - win): ptr[s]]
             sig = strat.evaluate(hist)
             held = positions[s].qty if s in positions else 0.0
+
+            if s in positions:
+                p = positions[s]
+                pl_pct = (p.qty * b.close - p.cost_basis) / p.cost_basis * 100 if p.cost_basis else None
+                exit_now, exit_reason = check_stop_take(
+                    pl_pct, stop_loss_pct=stop_loss_pct, take_profit_pct=take_profit_pct
+                )
+                if exit_now:
+                    sig = StrategySignal(SELL, exit_reason, b.close, sig.fast_ma, sig.slow_ma, sig.indicators)
+
             planned = plan_trade(
                 sig.action, held_qty=held, symbol=s,
                 notional_cap=per_trade_usd, ref_price=b.close,
@@ -281,6 +293,7 @@ def run_backtest(
         params={
             "symbols": symbols, "timeframe": timeframe,
             "ma_fast": ma_fast, "ma_slow": ma_slow, "deadband": deadband,
+            "stop_loss_pct": stop_loss_pct, "take_profit_pct": take_profit_pct,
             "per_trade_usd": per_trade_usd, "max_alloc_usd": max_alloc_usd,
             "crypto_fee_bps": crypto_fee_bps, "equity_fee_bps": equity_fee_bps,
         },
@@ -317,9 +330,15 @@ def print_report(r: BacktestResult) -> None:
     print()
     print("═" * 68)
     print(f" BACKTEST  {','.join(p['symbols'])}")
+    exits = []
+    if p.get("stop_loss_pct"):
+        exits.append(f"stop -{p['stop_loss_pct']:g}%")
+    if p.get("take_profit_pct"):
+        exits.append(f"take +{p['take_profit_pct']:g}%")
+    exit_str = f"  exits[{', '.join(exits)}]" if exits else ""
     print(f" {r.start:%Y-%m-%d} → {r.end:%Y-%m-%d}  ({r.years:.2f}y)  "
           f"tf={p['timeframe']}  MA {p['ma_fast']}/{p['ma_slow']}  "
-          f"deadband {p['deadband']:g}%")
+          f"deadband {p['deadband']:g}%{exit_str}")
     print(f" ${r.starting_cash:,.0f} start  ·  ${p['per_trade_usd']:,.0f}/trade  ·  "
           f"${p['max_alloc_usd']:,.0f} max deployed  ·  "
           f"crypto fee {p['crypto_fee_bps']:g}bps")
@@ -388,6 +407,10 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--ma-fast", type=int, default=CONFIG.ma_fast)
     ap.add_argument("--ma-slow", type=int, default=CONFIG.ma_slow)
     ap.add_argument("--deadband", type=float, default=CONFIG.ma_min_spread_pct)
+    ap.add_argument("--stop-loss", type=float, default=CONFIG.stop_loss_pct,
+                    help="force-exit if a position is down this %% (0 = off)")
+    ap.add_argument("--take-profit", type=float, default=CONFIG.take_profit_pct,
+                    help="force-exit if a position is up this %% (0 = off)")
     ap.add_argument("--cash", type=float, default=CONFIG.shadow_starting_cash)
     ap.add_argument("--per-trade", type=float, default=CONFIG.risk.max_position_notional_usd)
     ap.add_argument("--max-alloc", type=float, default=CONFIG.risk.max_total_allocation_usd)
@@ -407,6 +430,7 @@ def main(argv: list[str] | None = None) -> int:
     r = run_backtest(
         symbols, args.timeframe, args.start, end,
         ma_fast=args.ma_fast, ma_slow=args.ma_slow, deadband=args.deadband,
+        stop_loss_pct=args.stop_loss, take_profit_pct=args.take_profit,
         starting_cash=args.cash, per_trade_usd=args.per_trade,
         max_alloc_usd=args.max_alloc,
         crypto_fee_bps=args.crypto_fee_bps, equity_fee_bps=args.equity_fee_bps,

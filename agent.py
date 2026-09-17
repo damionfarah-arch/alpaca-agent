@@ -29,11 +29,11 @@ from datetime import datetime, timedelta, timezone
 import db
 from broker_alpaca import AlpacaBroker, BrokerError
 from config import CONFIG
-from engine import plan_trade
+from engine import check_stop_take, plan_trade
 from models import AssetClass, Position, Side
 from risk import OrderIntent, RiskManager, daily_loss_halt, kill_switch_active
 from shadow import ShadowPortfolio
-from strategy import BUY, HOLD, SELL, get_strategy
+from strategy import BUY, HOLD, SELL, StrategySignal, get_strategy
 
 log = logging.getLogger("agent")
 
@@ -297,6 +297,19 @@ class AgentLoop:
 
         bars = self.broker.get_bars(symbol)
         sig = self.strategy.evaluate(bars)
+
+        # ---- stop-loss / take-profit: overrides the strategy signal ----
+        if position is not None:
+            exit_now, exit_reason = check_stop_take(
+                position.unrealized_pl_pct,
+                stop_loss_pct=cfg.stop_loss_pct,
+                take_profit_pct=cfg.take_profit_pct,
+            )
+            if exit_now:
+                sig = StrategySignal(
+                    action=SELL, reason=exit_reason, price=sig.price,
+                    fast_ma=sig.fast_ma, slow_ma=sig.slow_ma, indicators=sig.indicators,
+                )
 
         # ---- position logic: translate raw signal -> intent (shared with backtest) ----
         ref_price = sig.price or (position.current_price if position else 0.0)

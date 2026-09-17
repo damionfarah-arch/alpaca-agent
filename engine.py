@@ -65,3 +65,29 @@ def plan_trade(
         return PlannedTrade(HOLD, None, "no open position to sell.")
 
     return PlannedTrade(HOLD, None, None)
+
+
+def check_stop_take(
+    unrealized_pl_pct: float | None,
+    *,
+    stop_loss_pct: float,
+    take_profit_pct: float,
+) -> tuple[bool, str | None]:
+    """Force-exit check for an open long position, independent of the strategy
+    signal. Either threshold set to 0 disables that side.
+
+    Returns (should_exit, reason). Stop-loss is checked before take-profit.
+    """
+    if unrealized_pl_pct is None:
+        return False, None
+    if stop_loss_pct > 0 and unrealized_pl_pct <= -stop_loss_pct:
+        return True, (
+            f"STOP-LOSS triggered: position down {unrealized_pl_pct:.2f}% "
+            f"(limit -{stop_loss_pct:g}%)."
+        )
+    if take_profit_pct > 0 and unrealized_pl_pct >= take_profit_pct:
+        return True, (
+            f"TAKE-PROFIT triggered: position up {unrealized_pl_pct:.2f}% "
+            f"(target +{take_profit_pct:g}%)."
+        )
+    return False, None

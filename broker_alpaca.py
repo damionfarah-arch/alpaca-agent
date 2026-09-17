@@ -16,6 +16,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 
 from alpaca.common.exceptions import APIError
+from alpaca.data.enums import DataFeed
 from alpaca.data.historical import (
     CryptoHistoricalDataClient,
     StockHistoricalDataClient,
@@ -217,7 +218,7 @@ class AlpacaBroker:
         if equities:
             try:
                 res = self.stock_data.get_stock_latest_trade(
-                    StockLatestTradeRequest(symbol_or_symbols=equities)
+                    StockLatestTradeRequest(symbol_or_symbols=equities, feed=DataFeed.IEX)
                 )
                 for sym, trade in res.items():
                     out[sym] = _f(trade.price)
@@ -272,7 +273,8 @@ class AlpacaBroker:
                 sym = symbol
                 res = self.stock_data.get_stock_bars(
                     StockBarsRequest(
-                        symbol_or_symbols=[sym], timeframe=tf, start=start
+                        symbol_or_symbols=[sym], timeframe=tf, start=start,
+                        feed=DataFeed.IEX,
                     )
                 )
         except APIError as exc:
@@ -316,7 +318,8 @@ class AlpacaBroker:
                 sym = symbol
                 res = self.stock_data.get_stock_bars(
                     StockBarsRequest(
-                        symbol_or_symbols=[sym], timeframe=tf, start=start, end=end
+                        symbol_or_symbols=[sym], timeframe=tf, start=start, end=end,
+                        feed=DataFeed.IEX,
                     )
                 )
         except APIError as exc:
